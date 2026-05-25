@@ -5,4 +5,11 @@
 		<UseWPF>true</UseWPF>
 		<GenerateAssemblyInfo>false</GenerateAssemblyInfo>
 	</PropertyGroup>
+	<ItemGroup>
+	  <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
+	</ItemGroup>
+	<ItemGroup>
+	  <Reference Include="System.Configuration" />
+	  <Reference Include="System.Net.Http" />
+	</ItemGroup>
 </Project>
