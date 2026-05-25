@@ -18,7 +18,6 @@
 
   <ItemGroup>
     <Folder Include="Application\DTOs\" />
-    <Folder Include="Domain\" />
   </ItemGroup>
 
 </Project>
