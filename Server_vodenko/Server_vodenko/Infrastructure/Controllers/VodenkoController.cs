@@ -4,7 +4,6 @@ using Server_vodenko.Application.DTOs;
 using Server_vodenko.Application.Interfaces;
 using Server_vodenko.Domain;
 
-
 namespace Server_vodenko.Infrastructure.Controllers
 {
     [ApiController]
@@ -14,12 +13,15 @@ namespace Server_vodenko.Infrastructure.Controllers
         private readonly IVodenkoService _service;
         private readonly PlcDataCache _cache;
         private readonly PlcConnection _plcConnection;
-        public VodenkoController(IVodenkoService service, PlcDataCache cache, PlcConnection plcconnection)
+
+        public VodenkoController(
+            IVodenkoService service,
+            PlcDataCache cache,
+            PlcConnection plcconnection)
         {
             _service = service;
             _cache = cache;
             _plcConnection = plcconnection;
-
         }
 
         [HttpGet]
@@ -75,6 +77,14 @@ namespace Server_vodenko.Infrastructure.Controllers
             {
                 L2ToPlcDto controlRow = await _service.GetControlRowAsync();
                 return Ok(controlRow);
+            }
+            catch (Exception ex)
+            {
+                return Problem(ex.Message);
+            }
+        }
+
+        [HttpGet]
         [Route("[action]")]
         public IActionResult GetVodenkoDataFromPlc()
         {
@@ -102,9 +112,32 @@ namespace Server_vodenko.Infrastructure.Controllers
                 await _service.SetResetPulseAsync();
                 return Ok();
             }
+            catch (Exception ex)
+            {
+                return Problem(ex.Message);
+            }
+        }
+
+        [HttpPost]
+        [Route("[action]")]
+        public async Task<IActionResult> UpdateControlRow([FromBody] L2ToPlcDto dto)
+        {
+            try
+            {
+                await _service.UpdateControlAsync(dto);
+                return Ok();
+            }
+            catch (Exception ex)
+            {
+                return Problem(ex.Message);
+            }
+        }
+
+        [HttpPost]
+        [Route("[action]")]
         public IActionResult WriteBoolToPlc(
-           [FromQuery] string variable,
-           [FromQuery] bool state)
+            [FromQuery] string variable,
+            [FromQuery] bool state)
         {
             try
             {
@@ -123,13 +156,6 @@ namespace Server_vodenko.Infrastructure.Controllers
 
         [HttpPost]
         [Route("[action]")]
-        public async Task<IActionResult> UpdateControlRow([FromBody] L2ToPlcDto dto)
-        {
-            try
-            {
-                await _service.UpdateControlAsync(dto);
-                return Ok();
-            }
         public IActionResult WriteRealToPlc(
             [FromQuery] string variable,
             [FromQuery] float value)
@@ -148,6 +174,5 @@ namespace Server_vodenko.Infrastructure.Controllers
                 return Problem(ex.Message);
             }
         }
-
     }
 }
