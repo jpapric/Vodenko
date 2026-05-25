@@ -10,6 +10,6 @@ namespace Server_vodenko.Application.Interfaces
         Task<List<Alarms>> GetAlarmsAsync(int minutes);
         Task<L2ToPlc> GetControlRowAsync();
         Task UpdateControlAsync(L2ToPlcDto dto);
-        Task SetResetPulseAsync(bool value);
+        Task SetResetPulseAsync();
     }
 }

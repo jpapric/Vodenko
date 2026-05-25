@@ -66,7 +66,7 @@ namespace Server_vodenko.Infrastructure.Repository
             throw new NotImplementedException();
         }
 
-        public Task SetResetPulseAsync(bool value)
+        public Task SetResetPulseAsync()
         {
             throw new NotImplementedException();
         }
