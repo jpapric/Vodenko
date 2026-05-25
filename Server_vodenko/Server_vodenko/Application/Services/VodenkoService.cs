@@ -12,16 +12,6 @@ namespace Server_vodenko.Application.Services
             _repository = repository;
         }
 
-        public Task<List<AlarmsDto>> GetAlarmsAsync(int minutes)
-        {
-            throw new NotImplementedException();
-        }
-
-        public Task<L2ToPlcDto> GetControlRowAsync()
-        {
-            throw new NotImplementedException();
-        }
-
         public PlcDto GetPlc()
         {
             Plc plc = _repository.GetPlc();
@@ -31,19 +21,35 @@ namespace Server_vodenko.Application.Services
             return plcDto;
         }
 
-        public Task<List<VodenkoDto>> GetTrendsAsync(int minutes)
+        public async Task<List<AlarmsDto>> GetAlarmsAsync(int minutes)
         {
-            throw new NotImplementedException();
+            var alarms = await _repository.GetAlarmsAsync(minutes); 
+            var alarmsDtos = alarms.Select(ApplicationFactory.GetAlarmsDtofromDomain).ToList();
+            return alarmsDtos;
         }
 
-        public Task SetResetPulseAsync(bool value)
+        public async Task<L2ToPlcDto> GetControlRowAsync()
         {
-            throw new NotImplementedException();
+            var controlRow = await _repository.GetControlRowAsync();
+            var controlRowDto = ApplicationFactory.GetL2ToPlcDtofromDomain(controlRow);
+            return controlRowDto;
         }
 
-        public Task UpdateControlAsync(L2ToPlcDto dto)
+        public async Task<List<VodenkoDto>> GetTrendsAsync(int minutes)
         {
-            throw new NotImplementedException();
+            var trends = await _repository.GetTrendsAsync(minutes); 
+            var trendsDtos = trends.Select(ApplicationFactory.GetVodenkoDtofromDomain).ToList();
+            return trendsDtos;
+        }
+
+        public async Task SetResetPulseAsync()
+        {
+            await _repository.SetResetPulseAsync();
+        }
+
+        public async Task UpdateControlAsync(L2ToPlcDto dto)
+        {
+            await _repository.UpdateControlAsync(dto);
         }
     }
 }
