@@ -2,6 +2,7 @@
 using Server_vodenko.Application.DTOs;
 using Server_vodenko.Application.Interfaces;
 using Server_vodenko.Domain;
+using Server_vodenko.Infrastructure.BackgroundServices;
 
 namespace Server_vodenko.Infrastructure.Repository
 {

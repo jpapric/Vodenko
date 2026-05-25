@@ -1,6 +1,6 @@
 ﻿namespace Server_vodenko.Domain
 {
-    public class PlcDataCash
+    public class PlcDataCache
     {
     }
 }

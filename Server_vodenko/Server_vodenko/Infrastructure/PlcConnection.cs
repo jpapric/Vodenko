@@ -1,6 +1,8 @@
 ﻿using S7.Net;
 using Server_vodenko.Application.Interfaces;
 using Server_vodenko.Domain;
+using Server_vodenko.Infrastructure.Controllers;
+using Server_vodenko.Infrastructure.Repository;
 
 namespace Server_vodenko.Infrastructure.BackgroundServices
 {
@@ -95,13 +97,13 @@ namespace Server_vodenko.Infrastructure.BackgroundServices
                 try
                 {
                     //var    watch = System.Diagnostics.Stopwatch.StartNew();
-                    EAF furnaceData = new EAF();
+                    Vodenko furnaceData = new Vodenko(0, 0 , DateTime.Now);
                     _plc.ReadClass(furnaceData, 301, 0);
-                    _cache.Update(furnaceData);
+                    //_cache.Update(furnaceData);
                     using var scope = _scopeFactory.CreateScope();
                     var repository = scope.ServiceProvider.GetRequiredService<IVodenkoRepository>();
-                    repository.Event_detection(furnaceData);
-                    repository.PostEAF(furnaceData);
+                    //repository.Event_detection(furnaceData);
+                    //repository.PostEAF(furnaceData);
 
 
                     //watch.Stop();
@@ -129,31 +131,22 @@ namespace Server_vodenko.Infrastructure.BackgroundServices
                 {
                     bool test = false;
                     string variableNameLower = variableName.ToLower();
-                    if (variableNameLower == "load_scrap")
+                    if (variableNameLower == "automatic_manual")
                     {
-                        _plc.Write("DB302.DBX0.0", state);
-                        test = (bool)_plc.Read("DB302.DBX0.0");
+                        _plc.Write("DB102.DBD8", state);
+                        test = (bool)_plc.Read("DB102.DBD8");
                     }
-                    else if (variableNameLower == "tap")
+                    else if (variableNameLower == "start_pump")
                     {
-                        bool result2 = (bool)_plc.Read("DB302.DBX0.1");
-                        _plc.Write("DB302.DBX0.1", !result2);
+                        bool result2 = (bool)_plc.Read("DB102.DBX8.1");
+                        _plc.Write("DB102.DBX8.1", !result2);
 
                     }
                     else if (variableNameLower == "reset")
                     {
-                        _plc.Write("DB302.DBD10", state);
-                        test = (bool)_plc.Read("DB302.DBD10");
+                        _plc.Write("DB102.DBX8.2", state);
+                        test = (bool)_plc.Read("DB102.DBX8.2");
                     }
-                    else if (variableNameLower == "electrodes")
-                    {
-                        bool result2 = (bool)_plc.Read("DB302.DBX0.2");
-                        _plc.Write("DB302.DBX0.2", state);
-                        bool result27 = (bool)_plc.Read("DB302.DBX0.2");
-                        bool result3 = (bool)_plc.Read("DB301.DBX0.2");
-
-                    }
-
                 }
 
                 //_logger.LogInformation($"Write {variableName} to value {test}");
@@ -180,19 +173,17 @@ namespace Server_vodenko.Infrastructure.BackgroundServices
                 {
                     float test = 0;
                     string variableNameLower = variableName.ToLower();
-                    if (variableNameLower == "current_setpoint")
+                    if (variableNameLower == "level_setpoint")
                     {
-                        _plc.Write("DB302.DBD2", (float)value);
-                        object table1 = _plc.Read("DB302.DBD2");
+                        _plc.Write("DB102.DBD0", (float)value);
+                        object table1 = _plc.Read("DB102.DBD0");
 
                     }
-                    else if (variableNameLower == "tap_angle")
+                    else if (variableNameLower == "manual_valve_value")
                     {
-                        _plc.Write("DB302.DBD6", (float)value);
+                        _plc.Write("DB102.DBD4", (float)value);
 
-                        object table1 = _plc.Read("DB302.DBD6.0");
-                        var table2 = Convert.ToSingle(_plc.Read("DB301.DBD2"));
-
+                        object table1 = _plc.Read("DB102.DBD4");
 
                     }
 
