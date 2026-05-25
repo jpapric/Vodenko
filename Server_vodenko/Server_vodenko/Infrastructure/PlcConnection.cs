@@ -1,5 +1,6 @@
 ﻿using S7.Net;
 using Server_vodenko.Application.Interfaces;
+using Server_vodenko.Domain;
 
 namespace Server_vodenko.Infrastructure.BackgroundServices
 {
