@@ -1,6 +1,8 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Server_vodenko.Infrastructure.BackgroundServices;
 using Server_vodenko.Application.DTOs;
 using Server_vodenko.Application.Interfaces;
+using Server_vodenko.Domain;
 
 
 namespace Server_vodenko.Infrastructure.Controllers
@@ -10,10 +12,13 @@ namespace Server_vodenko.Infrastructure.Controllers
     public class VodenkoController : ControllerBase
     {
         private readonly IVodenkoService _service;
-
-        public VodenkoController(IVodenkoService service)
+        private readonly PlcDataCache _cache;
+        private readonly PlcConnection _plcConnection;
+        public VodenkoController(IVodenkoService service, PlcDataCache cache, PlcConnection plcconnection)
         {
             _service = service;
+            _cache = cache;
+            _plcConnection = plcconnection;
 
         }
 
@@ -70,6 +75,17 @@ namespace Server_vodenko.Infrastructure.Controllers
             {
                 L2ToPlcDto controlRow = await _service.GetControlRowAsync();
                 return Ok(controlRow);
+        [Route("[action]")]
+        public IActionResult GetVodenkoDataFromPlc()
+        {
+            try
+            {
+                var data = _cache.Get();
+
+                if (data == null)
+                    return NoContent();
+
+                return Ok(data);
             }
             catch (Exception ex)
             {
@@ -86,6 +102,19 @@ namespace Server_vodenko.Infrastructure.Controllers
                 await _service.SetResetPulseAsync();
                 return Ok();
             }
+        public IActionResult WriteBoolToPlc(
+           [FromQuery] string variable,
+           [FromQuery] bool state)
+        {
+            try
+            {
+                _plcConnection.WriteBool(variable, state);
+                return Ok();
+            }
+            catch (InvalidOperationException ex)
+            {
+                return StatusCode(503, ex.Message);
+            }
             catch (Exception ex)
             {
                 return Problem(ex.Message);
@@ -101,10 +130,24 @@ namespace Server_vodenko.Infrastructure.Controllers
                 await _service.UpdateControlAsync(dto);
                 return Ok();
             }
+        public IActionResult WriteRealToPlc(
+            [FromQuery] string variable,
+            [FromQuery] float value)
+        {
+            try
+            {
+                _plcConnection.WriteReal(variable, value);
+                return Ok();
+            }
+            catch (InvalidOperationException ex)
+            {
+                return StatusCode(503, ex.Message);
+            }
             catch (Exception ex)
             {
                 return Problem(ex.Message);
             }
         }
+
     }
 }
