@@ -1,0 +1,14 @@
+{
+  "profiles": {
+    "Server_vodenko": {
+      "commandName": "Project",
+      "launchBrowser": true,
+      "launchUrl": "swagger",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      },
+      "applicationUrl": "https://localhost:57617;http://localhost:57618"
+    }
+  }
+
+}
