@@ -57,7 +57,7 @@ namespace Server_vodenko.Infrastructure.Repository
         {
             var result = new List<Alarms>();
 
-            string query = @"SELECT Setpoint_Invalid, Manual_Valve_Invalid, Tank_Overflow, Time_Saved
+            string query = @"SELECT Setpoint_Invalid, Manual_Valve_Invalid, Tank_Overfill, Time_Saved
                              FROM ALARMS
                              WHERE Time_Saved >= DATEADD(MINUTE, @minutes, GETDATE())
                              ORDER BY Time_Saved DESC";
@@ -74,7 +74,7 @@ namespace Server_vodenko.Infrastructure.Repository
                 result.Add(new Alarms(
                     reader.GetBoolean(reader.GetOrdinal("Setpoint_Invalid")),
                     reader.GetBoolean(reader.GetOrdinal("Manual_Valve_Invalid")),
-                    reader.GetBoolean(reader.GetOrdinal("Tank_Overflow")),
+                    reader.GetBoolean(reader.GetOrdinal("Tank_Overfill")),
                     reader.GetDateTime(reader.GetOrdinal("Time_Saved"))
                 ));
             }
@@ -86,7 +86,7 @@ namespace Server_vodenko.Infrastructure.Repository
         public async Task<L2ToPlc> GetControlRowAsync()
         {
             string query = @"SELECT TOP 1 Level_Setpoint, Manual_Valve_Value,
-                                    Automatic_Manual, Start_Pump, Reset
+                                    Automatic_Manual, Start_Pump, Reset_
                              FROM L2_TO_PLC";
 
             using var connection = new SqlConnection(_connectionString);
@@ -97,11 +97,11 @@ namespace Server_vodenko.Infrastructure.Repository
             if (await reader.ReadAsync())
             {
                 return new L2ToPlc(
-                    reader.IsDBNull(reader.GetOrdinal("Level_Setpoint")) ? null : reader.GetFloat(reader.GetOrdinal("Level_Setpoint")),
-                    reader.IsDBNull(reader.GetOrdinal("Manual_Valve_Value")) ? null : reader.GetFloat(reader.GetOrdinal("Manual_Valve_Value")),
+                    reader.IsDBNull(reader.GetOrdinal("Level_Setpoint")) ? null : (float?)Convert.ToSingle(reader.GetValue(reader.GetOrdinal("Level_Setpoint"))),
+                    reader.IsDBNull(reader.GetOrdinal("Manual_Valve_Value")) ? null : (float?)Convert.ToSingle(reader.GetValue(reader.GetOrdinal("Manual_Valve_Value"))),
                     reader.IsDBNull(reader.GetOrdinal("Automatic_Manual")) ? null : reader.GetBoolean(reader.GetOrdinal("Automatic_Manual")),
                     reader.IsDBNull(reader.GetOrdinal("Start_Pump")) ? null : reader.GetBoolean(reader.GetOrdinal("Start_Pump")),
-                    reader.IsDBNull(reader.GetOrdinal("Reset")) ? null : reader.GetBoolean(reader.GetOrdinal("Reset"))
+                    reader.IsDBNull(reader.GetOrdinal("Reset_")) ? null : reader.GetBoolean(reader.GetOrdinal("Reset_"))
                 );
             }
 
@@ -151,11 +151,19 @@ namespace Server_vodenko.Infrastructure.Repository
 
         public async Task UpdateControlAsync(L2ToPlcDto dto)
         {
-            string query = @"UPDATE L2_TO_PLC
-                             SET Level_Setpoint     = @Level_Setpoint,
-                                 Manual_Valve_Value = @Manual_Valve_Value,
-                                 Automatic_Manual   = @Automatic_Manual,
-                                 Start_Pump         = @Start_Pump";
+            string query = @"
+                            UPDATE L2_TO_PLC
+                            SET Level_Setpoint     = @Level_Setpoint,
+                                Manual_Valve_Value = @Manual_Valve_Value,
+                                Automatic_Manual   = @Automatic_Manual,
+                                Start_Pump         = @Start_Pump,
+                                Reset_             = @Reset;
+                            IF @@ROWCOUNT = 0
+                            BEGIN
+                                INSERT INTO L2_TO_PLC (Level_Setpoint, Manual_Valve_Value, Automatic_Manual, Start_Pump, Reset_)
+                                VALUES (@Level_Setpoint, @Manual_Valve_Value, @Automatic_Manual, @Start_Pump, @Reset);
+                            END
+                            ";
 
             using var connection = new SqlConnection(_connectionString);
             using var command = new SqlCommand(query, connection);
@@ -164,7 +172,7 @@ namespace Server_vodenko.Infrastructure.Repository
             command.Parameters.AddWithValue("@Manual_Valve_Value", (object?)dto.Manual_Valve_Value ?? DBNull.Value);
             command.Parameters.AddWithValue("@Automatic_Manual", (object?)dto.Automatic_Manual ?? DBNull.Value);
             command.Parameters.AddWithValue("@Start_Pump", (object?)dto.Start_Pump ?? DBNull.Value);
-
+            command.Parameters.AddWithValue("@Reset", (object?)dto.Reset_ ?? DBNull.Value);
             await connection.OpenAsync();
             await command.ExecuteNonQueryAsync();
 

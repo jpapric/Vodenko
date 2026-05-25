@@ -21,7 +21,7 @@ namespace Server_vodenko.Application
             {
                 Setpoint_Invalid = alarm.Setpoint_Invalid,
                 Manual_Valve_Invalid = alarm.Manual_Valve_Invalid,
-                Tank_Overflow = alarm.Tank_Overflow,
+                Tank_Overfill = alarm.Tank_Overfill,
                 Time_Saved = alarm.Time_Saved
             };
         }
@@ -44,7 +44,7 @@ namespace Server_vodenko.Application
                 Manual_Valve_Value = l2ToPlc.Manual_Valve_Value,
                 Automatic_Manual = l2ToPlc.Automatic_Manual,
                 Start_Pump = l2ToPlc.Start_Pump,
-                Reset = l2ToPlc.Reset
+                Reset_ = l2ToPlc.Reset_
             };
         }
 

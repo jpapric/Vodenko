@@ -6,6 +6,6 @@
         public float? Manual_Valve_Value { get; set; }
         public bool? Automatic_Manual { get; set; }
         public bool? Start_Pump { get; set; }
-        public bool? Reset { get; set; }
+        public bool? Reset_ { get; set; }
     }
 }
