@@ -6,12 +6,12 @@ using System.Threading.Tasks;
 
 namespace ClientVodenko.Models
 {
-    public class VodenkoDTO
+    public class VodenkoDto
     {
-        public float Actual_Level { get; set; }
-        public float Valve_Position { get; set; }
-
-        public DateTime Time_Saved { get; set; }
-
+        public bool Setpoint_invalid { get; set; }
+        public bool Manual_valve_invalid { get; set; }
+        public bool Tank_overfill { get; set; }
+        public float Actual_level { get; set; }
+        public float Valve_position { get; set; }
     }
 }
