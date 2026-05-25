@@ -98,8 +98,9 @@ namespace Server_vodenko.Infrastructure.BackgroundServices
                 {
                     //var    watch = System.Diagnostics.Stopwatch.StartNew();
                     Vodenko furnaceData = new Vodenko(0, 0 , DateTime.Now);
+                    //float test = Convert.ToSingle(_plc.Read("DB101.DBD0"));
                     _plc.ReadClass(furnaceData, 301, 0);
-                    //_cache.Update(furnaceData);
+                    _cache.Update(furnaceData);
                     using var scope = _scopeFactory.CreateScope();
                     var repository = scope.ServiceProvider.GetRequiredService<IVodenkoRepository>();
                     //repository.Event_detection(furnaceData);
