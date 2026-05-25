@@ -16,7 +16,7 @@ using System.Windows.Threading;
 
 namespace ClientVodenko.ViewModel
 {
-    public class VodenkoViewModel
+    public class VodenkoViewModel : INotifyPropertyChanged
     {
         private readonly VodenkoProxy _proxy = new VodenkoProxy();
         private readonly DispatcherTimer _timer;
