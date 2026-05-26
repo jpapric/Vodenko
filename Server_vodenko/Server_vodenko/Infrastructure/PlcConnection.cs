@@ -1,4 +1,5 @@
 ﻿using S7.Net;
+using Server_vodenko.Application.DTOs;
 using Server_vodenko.Application.Interfaces;
 using Server_vodenko.Domain;
 using Server_vodenko.Infrastructure.Controllers;
@@ -85,7 +86,7 @@ namespace Server_vodenko.Infrastructure.BackgroundServices
 
                 }
 
-                await Task.Delay(3000, stoppingToken);
+                await Task.Delay(1000, stoppingToken);
             }
         }
 
@@ -93,27 +94,42 @@ namespace Server_vodenko.Infrastructure.BackgroundServices
         {
             try
             {
-
                 try
                 {
-                    //var    watch = System.Diagnostics.Stopwatch.StartNew();
-                    Vodenko furnaceData = new Vodenko(0, 0 , DateTime.Now);
-                    //float test = Convert.ToSingle(_plc.Read("DB101.DBD0"));
-                    _plc.ReadClass(furnaceData, 301, 0);
-                    _cache.Update(furnaceData);
+                    var vodenkoData = new Vodenko(0, 0, DateTime.Now);
+                    _plc.ReadClass(vodenkoData, 101, 0);
+                    _cache.Update(vodenkoData);
+
+                    var alarmsData = new Alarms(false, false, false, DateTime.Now);
+                    _plc.ReadClass(alarmsData, 101, 0);
+
                     using var scope = _scopeFactory.CreateScope();
                     var repository = scope.ServiceProvider.GetRequiredService<IVodenkoRepository>();
-                    //repository.Event_detection(furnaceData);
-                    //repository.PostEAF(furnaceData);
 
+                    var vodenkoDto = new VodenkoDto
+                    {
+                        Actual_Level = vodenkoData.Actual_Level,
+                        Valve_Position = vodenkoData.Valve_Position,
+                        Time_Saved = vodenkoData.Time_Saved
+                    };
 
-                    //watch.Stop();
-                    //_logger.LogInformation($"Sending speed {watch.ElapsedMilliseconds}");
+                    var alarmsDto = new AlarmsDto
+                    {
+                        Setpoint_Invalid = alarmsData.Setpoint_Invalid,
+                        Manual_Valve_Invalid = alarmsData.Manual_Valve_Invalid,
+                        Tank_Overfill = alarmsData.Tank_Overfill,
+                        Time_Saved = alarmsData.Time_Saved
+                    };
 
+                    Task.Run(async () =>
+                    {
+                        await repository.SaveTrendAsync(vodenkoDto);
+                        await repository.SaveAlarmAsync(alarmsDto);
+                    });
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogWarning("DB{Db} not readable: {Message}", 301, ex.Message);
+                    _logger.LogWarning("DB not readable: {Message}", ex.Message);
                 }
             }
             catch (Exception ex)

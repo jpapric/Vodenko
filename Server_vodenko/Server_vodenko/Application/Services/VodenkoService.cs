@@ -51,5 +51,15 @@ namespace Server_vodenko.Application.Services
         {
             await _repository.UpdateControlAsync(dto);
         }
+
+        public async Task SaveTrendAsync(VodenkoDto vodenko)
+        {
+            await _repository.SaveTrendAsync(vodenko);
+        }
+
+        public async Task SaveAlarmAsync(AlarmsDto alarms)
+        {
+            await _repository.SaveAlarmAsync(alarms);
+        }
     }
 }

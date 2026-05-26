@@ -115,7 +115,7 @@ namespace Server_vodenko.Infrastructure.Repository
             string query = @"SELECT Actual_Level, Valve_Position, Time_Saved
                              FROM PLC_TO_L2
                              WHERE Time_Saved >= DATEADD(MINUTE, @minutes, GETDATE())
-                             ORDER BY Time_Saved ASC";
+                             ORDER BY Time_Saved DESC";
 
             using var connection = new SqlConnection(_connectionString);
             using var command = new SqlCommand(query, connection);
@@ -127,8 +127,8 @@ namespace Server_vodenko.Infrastructure.Repository
             while (await reader.ReadAsync())
             {
                 result.Add(new Vodenko(
-                    reader.GetFloat(reader.GetOrdinal("Actual_Level")),
-                    reader.GetFloat(reader.GetOrdinal("Valve_Position")),
+                    Convert.ToSingle(reader["Actual_Level"]),
+                    Convert.ToSingle(reader["Valve_Position"]),
                     reader.GetDateTime(reader.GetOrdinal("Time_Saved"))
                 ));
             }
@@ -139,14 +139,14 @@ namespace Server_vodenko.Infrastructure.Repository
         public async Task SetResetPulseAsync()
         {
             string query = @"UPDATE L2_TO_PLC
-                             SET Reset = 1";
+                             SET Reset_ = 1";
             using var connection = new SqlConnection(_connectionString);
             using var command = new SqlCommand(query, connection);
             await connection.OpenAsync();
             await command.ExecuteNonQueryAsync();
-            _plcConnection.WriteBool("DB102,X8.2", true);
-             await Task.Delay(1000); 
-            _plcConnection.WriteBool("DB102,X8.2", false);
+            _plcConnection.WriteBool("reset_", true);
+            await Task.Delay(1000);
+            _plcConnection.WriteBool("reset_", false);
         }
 
         public async Task UpdateControlAsync(L2ToPlcDto dto)
@@ -157,11 +157,11 @@ namespace Server_vodenko.Infrastructure.Repository
                                 Manual_Valve_Value = @Manual_Valve_Value,
                                 Automatic_Manual   = @Automatic_Manual,
                                 Start_Pump         = @Start_Pump,
-                                Reset_             = @Reset;
+                                Reset_             = @Reset_;
                             IF @@ROWCOUNT = 0
                             BEGIN
                                 INSERT INTO L2_TO_PLC (Level_Setpoint, Manual_Valve_Value, Automatic_Manual, Start_Pump, Reset_)
-                                VALUES (@Level_Setpoint, @Manual_Valve_Value, @Automatic_Manual, @Start_Pump, @Reset);
+                                VALUES (@Level_Setpoint, @Manual_Valve_Value, @Automatic_Manual, @Start_Pump, @Reset_);
                             END
                             ";
 
@@ -172,14 +172,46 @@ namespace Server_vodenko.Infrastructure.Repository
             command.Parameters.AddWithValue("@Manual_Valve_Value", (object?)dto.Manual_Valve_Value ?? DBNull.Value);
             command.Parameters.AddWithValue("@Automatic_Manual", (object?)dto.Automatic_Manual ?? DBNull.Value);
             command.Parameters.AddWithValue("@Start_Pump", (object?)dto.Start_Pump ?? DBNull.Value);
-            command.Parameters.AddWithValue("@Reset", (object?)dto.Reset_ ?? DBNull.Value);
+            command.Parameters.AddWithValue("@Reset_", (object?)dto.Reset_ ?? DBNull.Value);
             await connection.OpenAsync();
             await command.ExecuteNonQueryAsync();
 
-            if (dto.Level_Setpoint.HasValue) _plcConnection.WriteReal("DB102,R0.0", dto.Level_Setpoint.Value);
-            if (dto.Manual_Valve_Value.HasValue) _plcConnection.WriteReal("DB102,R4.0", dto.Manual_Valve_Value.Value);
-            if (dto.Automatic_Manual.HasValue) _plcConnection.WriteBool("DB102,X8.0", dto.Automatic_Manual.Value);
-            if (dto.Start_Pump.HasValue) _plcConnection.WriteBool("DB102,X8.1", dto.Start_Pump.Value);
+            if (dto.Level_Setpoint.HasValue) _plcConnection.WriteReal("level_setpoint", dto.Level_Setpoint.Value);
+            if (dto.Manual_Valve_Value.HasValue) _plcConnection.WriteReal("manual_valve_value", dto.Manual_Valve_Value.Value);
+            if (dto.Automatic_Manual.HasValue) _plcConnection.WriteBool("automatic_manual", dto.Automatic_Manual.Value);
+            if (dto.Start_Pump.HasValue) _plcConnection.WriteBool("start_pump", dto.Start_Pump.Value);
+
         }
+
+        public async Task SaveTrendAsync(VodenkoDto vodenko)
+        {
+            string query = @"INSERT INTO PLC_TO_L2 (Actual_Level, Valve_Position, Time_Saved)
+                     VALUES (@Actual_Level, @Valve_Position, GETDATE())";
+
+            using var connection = new SqlConnection(_connectionString);
+            using var command = new SqlCommand(query, connection);
+            command.Parameters.AddWithValue("@Actual_Level", vodenko.Actual_Level);
+            command.Parameters.AddWithValue("@Valve_Position", vodenko.Valve_Position);
+            await connection.OpenAsync();
+            await command.ExecuteNonQueryAsync();
+        }
+
+        public async Task SaveAlarmAsync(AlarmsDto alarms)
+        {
+            if (!alarms.Setpoint_Invalid && !alarms.Manual_Valve_Invalid && !alarms.Tank_Overfill)
+                return;
+
+            string query = @"INSERT INTO ALARMS (Setpoint_Invalid, Manual_Valve_Invalid, Tank_Overfill, Time_Saved)
+                     VALUES (@Setpoint_Invalid, @Manual_Valve_Invalid, @Tank_Overfill, GETDATE())";
+
+            using var connection = new SqlConnection(_connectionString);
+            using var command = new SqlCommand(query, connection);
+            command.Parameters.AddWithValue("@Setpoint_Invalid", alarms.Setpoint_Invalid);
+            command.Parameters.AddWithValue("@Manual_Valve_Invalid", alarms.Manual_Valve_Invalid);
+            command.Parameters.AddWithValue("@Tank_Overfill", alarms.Tank_Overfill);
+            await connection.OpenAsync();
+            await command.ExecuteNonQueryAsync();
+        }
+
     }
 }

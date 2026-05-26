@@ -11,6 +11,8 @@ namespace Server_vodenko.Application.Interfaces
         Task<L2ToPlcDto> GetControlRowAsync();
         Task UpdateControlAsync(L2ToPlcDto dto);
         Task SetResetPulseAsync();
-        
+        Task SaveTrendAsync(VodenkoDto trends);
+        Task SaveAlarmAsync(AlarmsDto alarms);
+
     }
 }
