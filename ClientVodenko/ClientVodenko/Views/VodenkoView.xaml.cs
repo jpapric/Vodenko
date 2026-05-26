@@ -1,4 +1,4 @@
-﻿using Client.Models;
+﻿using ClientVodenko.Models;
 using ClientVodenko.ViewModel;
 using System;
 using System.Collections.Generic;
@@ -16,7 +16,6 @@ using System.Windows.Navigation;
 using System.Windows.Shapes;
 using System.Windows.Threading;
 using System.ComponentModel;
-using ClientVodenko.Models;
 
 namespace ClientVodenko.Views
 {
@@ -25,15 +24,13 @@ namespace ClientVodenko.Views
         private readonly VodenkoViewModel _vm;
         private readonly DispatcherTimer _animTimer;
 
-        // Dimenzije našeg spremnika u XAML-u (Usklađeno s tvojim dizajnom)
-        private const double MinWaterTop = 300.0;    // Dno posude
-        private const double MaxWaterHeight = 220.0; // Maksimalna visina vode (100%)
+        private const double MinWaterTop = 300.0;
+        private const double MaxWaterHeight = 220.0;
 
         public VodenkoView()
         {
             InitializeComponent();
 
-            // Zaštita za XAML dizajner da se Visual Studio ne ruši
             if (DesignerProperties.GetIsInDesignMode(this)) return;
 
             _vm = new VodenkoViewModel();
@@ -42,7 +39,6 @@ namespace ClientVodenko.Views
             _vm.StartPolling();
             Loaded += async (s, e) => await LoadPlcConfig();
 
-            // Pokretanje tajmera za iscrtavanje grafike (svakih 50ms)
             _animTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(50) };
             _animTimer.Tick += (s, e) => DrawFrame();
             _animTimer.Start();
@@ -50,57 +46,54 @@ namespace ClientVodenko.Views
 
         private void DrawFrame()
         {
-            // Osiguraj se da su XAML elementi spremni prije crtanja po njima
+            // Sigurnosna provjera XAML elemenata
             if (WaterFill == null || WaterLevelText == null || ValveGate == null || OutflowStream == null)
                 return;
 
-            // 1. Nacrtaj grafiku koristeći točne podatke iz tvog ViewModela
             DrawWaterLevel();
             DrawValveAndOutflow();
-
-            // 2. Nacrtaj LED-ice i Bannere
             DrawLeds();
             DrawAlarmBanners();
 
-            // Provjera i ispis sata i datuma (ako ti TextBlock-ovi postoje u XAML-u)
             if (CurrentTimeText != null) CurrentTimeText.Text = DateTime.Now.ToString("HH:mm:ss");
             if (CurrentDateText != null) CurrentDateText.Text = DateTime.Now.ToString("dd.MM.yyyy");
         }
 
         private void DrawWaterLevel()
         {
-            // Tvoj ViewModel šalje razinu u ActualLevel (pretpostavka je postotak 0 - 100%)
-            double percentage = Math.Max(0, Math.Min(100, _vm.ActualLevel));
+            double percentage = _vm.ActualLevel;
 
-            // Izračunaj visinu plavog pravokutnika u pikselima
+            // POPRAVLJENO: Filtriranje ludih i ogromnih negativnih brojeva (smetnji)
+            if (double.IsNaN(percentage) || double.IsInfinity(percentage) || percentage < 0 || percentage > 100000)
+            {
+                percentage = 0;
+            }
+            if (percentage > 100) percentage = 100;
+
             double targetHeight = (percentage / 100.0) * MaxWaterHeight;
-
-            // Postavi visinu vode
             WaterFill.Height = targetHeight;
 
-            // Pomakni Top koordinatu (jer WPF crta odozgo prema dolje, pa drži dno fiksno na 300)
             double newTop = MinWaterTop - targetHeight;
             Canvas.SetTop(WaterFill, newTop);
 
-            // Osvježi čisti postotak na ekranu
-            WaterLevelText.Text = $"{percentage:F0}%";
-
-            // Pomakni tekstualni postotak da uvijek lebdi točno iznad površine vode
+            WaterLevelText.Text = $"{percentage:F1}%";
             Canvas.SetTop(WaterLevelText, Math.Max(newTop - 25, 85));
         }
 
         private void DrawValveAndOutflow()
         {
-            // Tvoj ViewModel drži poziciju ventila u ValvePosition (0 - 100%)
-            double valvePct = Math.Max(0, Math.Min(100, _vm.ValvePosition));
+            double valvePct = _vm.ValvePosition;
 
-            // Crveni zasun se pomiče maksimalno za 22 piksela
+            // POPRAVLJENO: Filtriranje ludih i ogromnih negativnih brojeva za ventil
+            if (double.IsNaN(valvePct) || double.IsInfinity(valvePct) || valvePct < 0 || valvePct > 100000)
+            {
+                valvePct = 0;
+            }
+            if (valvePct > 100) valvePct = 100;
+
             double valveOffset = (valvePct / 100.0) * 22.0;
-
-            // Pomakni crveni zasun ventila (Zatvoreno = dno cijevi na 277, Otvoreno = ide prema gore)
             Canvas.SetTop(ValveGate, 277 - valveOffset);
 
-            // Ako je ventil imalo otvoren (više od 1%), prikaži izlazni slap vode, inače ga sakrij
             if (valvePct > 1.0)
             {
                 OutflowStream.Opacity = 0.8;
@@ -126,7 +119,6 @@ namespace ClientVodenko.Views
 
         private void DrawAlarmBanners()
         {
-            // Povezivanje alarma iz tvog ViewModela na XAML Bannere
             if (OverfillBanner != null)
                 OverfillBanner.Visibility = _vm.TankOverfill ? Visibility.Visible : Visibility.Collapsed;
 
@@ -144,6 +136,11 @@ namespace ClientVodenko.Views
             if (LevelSetpointInput != null) LevelSetpointInput.Text = "0";
         }
 
+        private void StartBtn_Click(object sender, RoutedEventArgs e)
+        {
+            _vm.StartCommand.Execute(null);
+        }
+
         private void SetLevelBtn_Click(object sender, RoutedEventArgs e)
         {
             if (LevelSetpointInput != null && float.TryParse(LevelSetpointInput.Text, out float val))
@@ -157,11 +154,23 @@ namespace ClientVodenko.Views
             if (TapAngleLabel == null) return;
             TapAngleLabel.Text = $"{ValveSlider.Value:F1}%";
 
-            // Šaljemo vrijednost klizača u ViewModel (koji će okinuti SetValvePosition na proxyju)
             _vm.ValvePositionSetpoint = (float)ValveSlider.Value;
             _vm.SetValvePositionCommand.Execute(null);
         }
 
+        private async void ModeToggle_Checked(object sender, RoutedEventArgs e)
+        {
+            try { await _vm.WriteBoolModeAsync("System_Auto_Mode", true); }
+            catch (Exception ex) { _vm.ConnectionStatus = $"Error: {ex.Message}"; }
+        }
+
+        private async void ModeToggle_Unchecked(object sender, RoutedEventArgs e)
+        {
+            try { await _vm.WriteBoolModeAsync("System_Auto_Mode", false); }
+            catch (Exception ex) { _vm.ConnectionStatus = $"Error: {ex.Message}"; }
+        }
+
+        // POPRAVLJENO I OPTIMIZIRANO: Spajanje sada uredno čeka odgovor s PLC-a
         private async void ConnectBtn_Click(object sender, RoutedEventArgs e)
         {
             string ip = IpInput.Text.Trim();
@@ -176,36 +185,52 @@ namespace ClientVodenko.Views
 
             ConnectBtn.IsEnabled = false;
             ConnStatusText.Text = "Connecting...";
-            ConnStatusLed.Fill = new SolidColorBrush(Color.FromRgb(255, 152, 0));
+            ConnStatusLed.Fill = new SolidColorBrush(Color.FromRgb(255, 152, 0)); // Narančasto (spajanje u tijeku)
 
             string cpuString = (CpuTypeInput.SelectedItem as ComboBoxItem)?.Content?.ToString();
-            PLCDto.CpuType cpu = cpuString == "S7-1200" ? PLCDto.CpuType.S71200 :
-                                 cpuString == "S7-400" ? PLCDto.CpuType.S7400 :
-                                 cpuString == "S7-300" ? PLCDto.CpuType.S7300 :
-                                                          PLCDto.CpuType.S71500;
+            PlcDto.CpuType cpu = cpuString == "S7-1200" ? PlcDto.CpuType.S71200 :
+                                 cpuString == "S7-400" ? PlcDto.CpuType.S7400 :
+                                 cpuString == "S7-300" ? PlcDto.CpuType.S7300 :
+                                                          PlcDto.CpuType.S71500;
 
-            var plcDto = new PLCDto
+            var plcDto = new PlcDto
             {
                 Ip = ip,
                 Rack = int.TryParse(rack, out int r) ? r : 0,
                 Slot = int.TryParse(slot, out int s) ? s : 1,
                 Cpu = cpu
             };
+
             try
             {
-                await Task.Delay(1000);
                 _vm.ManuallyDisconnected = false;
+
+                // 1. Šaljemo nove postavke na API
                 _vm.UpdatePlcCommand.Execute(plcDto);
+
+                // 2. DAJEMO SUSTAVU 1.5 SEKUNDU DA ODRADI SPAJANJE NA PLC U POZADINI
+                await Task.Delay(1500);
 
                 var green = new SolidColorBrush(Color.FromRgb(76, 175, 80));
                 var red = new SolidColorBrush(Color.FromRgb(244, 67, 54));
 
-                ConnStatusLed.Fill = _vm.IsConnected ? green : red;
-                ConnStatusText.Text = _vm.IsConnected ? "Connected" : "PLC not reachable";
-                PlcAddressText.Text = $"{ip} | Rack {rack} | Slot {slot}";
-                CpuText.Text = $"CPU: {cpuString}";
-                ConnectBtn.IsEnabled = false;
-                DisconnectBtn.IsEnabled = true;
+                // 3. Tek sada provjeravamo je li pozadinski tajmer uspio pročitati podatke
+                if (_vm.IsConnected)
+                {
+                    ConnStatusLed.Fill = green;
+                    ConnStatusText.Text = "Connected";
+                    PlcAddressText.Text = $"{ip} | Rack {rack} | Slot {slot}";
+                    CpuText.Text = $"CPU: {cpuString}";
+                    ConnectBtn.IsEnabled = false;
+                    DisconnectBtn.IsEnabled = true;
+                }
+                else
+                {
+                    // Ako nakon 1.5s i dalje nema podataka, javi da PLC nije dostupan
+                    ConnStatusLed.Fill = red;
+                    ConnStatusText.Text = "PLC not reachable";
+                    ConnectBtn.IsEnabled = true;
+                }
             }
             catch
             {
@@ -231,14 +256,16 @@ namespace ClientVodenko.Views
             try
             {
                 var proxy = new ClientVodenko.Proxies.VodenkoProxy();
-                PLCDto plc = await proxy.GetPlcAsync();
+                PlcDto plc = await proxy.GetPlcAsync();
+                if (plc == null) return;
+
                 IpInput.Text = plc.Ip;
                 RackInput.Text = plc.Rack.ToString();
                 SlotInput.Text = plc.Slot.ToString();
 
-                string cpuName = plc.Cpu == PLCDto.CpuType.S71200 ? "S7-1200" :
-                                 plc.Cpu == PLCDto.CpuType.S7400 ? "S7-400" :
-                                 plc.Cpu == PLCDto.CpuType.S7300 ? "S7-300" : "S7-1500";
+                string cpuName = plc.Cpu == PlcDto.CpuType.S71200 ? "S7-1200" :
+                                 plc.Cpu == PlcDto.CpuType.S7400 ? "S7-400" :
+                                 plc.Cpu == PlcDto.CpuType.S7300 ? "S7-300" : "S7-1500";
 
                 foreach (ComboBoxItem item in CpuTypeInput.Items)
                     if (item.Content.ToString() == cpuName)

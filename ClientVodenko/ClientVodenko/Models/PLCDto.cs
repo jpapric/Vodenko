@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace ClientVodenko.Models
 {
-    public class PLCDto
+    public class PlcDto
     {
         public string Ip { get; set; }
         public int Rack { get; set; }

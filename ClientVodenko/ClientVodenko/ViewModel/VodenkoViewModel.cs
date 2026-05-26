@@ -36,6 +36,7 @@ namespace ClientVodenko.ViewModel
         #region PLC Data Fields
 
         private float _actualLevel;
+        private DateTime _timeSaved;
         private float _valvePosition;
         private bool _setpointInvalid;
         private bool _manualValveInvalid;
@@ -53,6 +54,16 @@ namespace ClientVodenko.ViewModel
             set
             {
                 _actualLevel = value;
+                OnPropertyChanged();
+            }
+        }
+
+        public DateTime TimeSaved
+        {
+            get => _timeSaved;
+            set
+            {
+                _timeSaved = value;
                 OnPropertyChanged();
             }
         }
@@ -96,8 +107,6 @@ namespace ClientVodenko.ViewModel
                 OnPropertyChanged();
             }
         }
-
-  
 
         public bool ManuallyDisconnected
         {
@@ -186,6 +195,7 @@ namespace ClientVodenko.ViewModel
         #region Commands
 
         public ICommand ResetCommand { get; }
+        public ICommand StartCommand { get; }
         public ICommand UpdatePlcCommand { get; }
         public ICommand SetValvePositionCommand { get; }
         public ICommand SetSetpointCommand { get; }
@@ -203,16 +213,33 @@ namespace ClientVodenko.ViewModel
 
             _timer.Tick += async (s, e) => await PollAsync();
 
+
+
             ResetCommand = new AsyncCommand(Reset);
+            StartCommand = new AsyncCommand(Start);
             SetValvePositionCommand = new AsyncCommand(SetValvePosition);
             SetSetpointCommand = new AsyncCommand(SetSetpoint);
-            UpdatePlcCommand = new AsyncCommand<PLCDto>(UpdatePlc);
+            UpdatePlcCommand = new AsyncCommand<L2ToPlcDto>(UpdatePlc);
+
+
         }
 
         #endregion
 
         #region Polling
 
+
+
+        #endregion
+
+        #region Command Methods
+
+
+
+
+
+
+        /* VALJDA VALJA !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! */
         public void StartPolling()
         {
             _timer.Start();
@@ -223,9 +250,10 @@ namespace ClientVodenko.ViewModel
             _timer.Stop();
         }
 
+        private int _loopCounter = 0; // Dodaj ovu varijablu na vrh klase ViewModel, izvan metode
+
         private async Task PollAsync()
         {
-
             if (_manuallyDisconnected)
             {
                 IsConnected = false;
@@ -234,7 +262,8 @@ namespace ClientVodenko.ViewModel
 
             try
             {
-                VodenkoDto data = await _proxy.GetEafDataFromPlcAsync();
+                // 1. Povuci podatke asinkrono u pozadini (ovo radi super)
+                VodenkoDto data = await _proxy.GetVodenkoDataFromPlcAsync();
 
                 if (data == null)
                 {
@@ -243,14 +272,45 @@ namespace ClientVodenko.ViewModel
                     return;
                 }
 
-                SetpointInvalid = data.Setpoint_Invalid;
-                ManualValveInvalid = data.Manual_Valve_Invalid;
-                TankOverfill = data.Tank_Overfill;
-                ActualLevel = data.Actual_Level;
-                ValvePosition = data.Valve_Position;
+                // 2. KLJUČNI POPRAVAK: Prebacujemo upisivanje podataka na UI Thread!
+                System.Windows.Application.Current.Dispatcher.Invoke(() =>
+                {
+                    // Filtriramo lude brojeve i odmah punimo svojstva na glavnom threadu
+                    ActualLevel = (data.Actual_Level < 0 || float.IsNaN(data.Actual_Level) || data.Actual_Level > 100000) ? 0 : data.Actual_Level;
+                    ValvePosition = (data.Valve_Position < 0 || float.IsNaN(data.Valve_Position) || data.Valve_Position > 100000) ? 0 : data.Valve_Position;
+                    TimeSaved = data.Time_Saved;
+                });
 
-                await RefreshEventsAsync();
+                // 3. Teški podaci iz baze (alarmi i trendovi) svakih 3 sekunde
+                _loopCounter++;
+                if (_loopCounter >= 20)
+                {
+                    _loopCounter = 0;
 
+                    List<AlarmsDto> alarmsList = await _proxy.GetAlarmsAsync(30);
+
+                    // Ponovno koristimo Dispatcher za alarmne lampice
+                    System.Windows.Application.Current.Dispatcher.Invoke(() =>
+                    {
+                        if (alarmsList != null && alarmsList.Count > 0)
+                        {
+                            var zadnjiAlarm = alarmsList.First();
+                            SetpointInvalid = zadnjiAlarm.Setpoint_Invalid;
+                            ManualValveInvalid = zadnjiAlarm.Manual_Valve_Invalid;
+                            TankOverfill = zadnjiAlarm.Tank_Overfill;
+                        }
+                        else
+                        {
+                            SetpointInvalid = false;
+                            ManualValveInvalid = false;
+                            TankOverfill = false;
+                        }
+                    });
+
+                    await RefreshEventsAsync();
+                }
+
+                // Sve je prošlo u redu
                 IsConnected = true;
                 ConnectionStatus = "Connected";
             }
@@ -260,31 +320,12 @@ namespace ClientVodenko.ViewModel
                 ConnectionStatus = $"Error: {ex.Message}";
             }
         }
-        private async Task RefreshEventsAsync()
+
+        private async Task UpdatePlc(L2ToPlcDto controlDto)
         {
             try
             {
-                var events = await _proxy.GetEventsAsync();
-                if (events == null) return;
-
-                Events = new ObservableCollection<EventDto>(events);
-
-                lastEvent = Events.First();
-                OnPropertyChanged(nameof(LastEventText));
-                OnPropertyChanged(nameof(LastEventTime));
-            }
-            catch { }
-        }
-
-        #endregion
-
-        #region Command Methods
-
-        private async Task SetSetpoint()
-        {
-            try
-            {
-                await _proxy.SetSetpointAsync(LevelSetpoint);
+                await _proxy.UpdateControlRowAsync(controlDto);
             }
             catch (Exception ex)
             {
@@ -292,11 +333,42 @@ namespace ClientVodenko.ViewModel
             }
         }
 
-        private async Task SetValvePosition()
+        private async Task RefreshEventsAsync()
         {
             try
             {
-                await _proxy.SetValvePositionAsync(ValvePositionSetpoint);
+                var trends = await _proxy.GetTrendsAsync(20);
+                if (trends == null || !trends.Any()) return;
+
+                var mappedEvents = trends.Select(t => new EventDto
+                {
+                    Name = $"Level: {t.Actual_Level} | Valve: {t.Valve_Position}",
+                    Time = t.Time_Saved,
+                    Type = "Trend"
+                }).ToList();
+
+                Events = new ObservableCollection<EventDto>(mappedEvents);
+
+                lastEvent = Events.First();
+                OnPropertyChanged(nameof(LastEventText));
+                OnPropertyChanged(nameof(LastEventTime));
+            }
+            catch
+            {
+            }
+        }
+
+
+
+
+
+
+
+        private async Task Start()
+        {
+            try
+            {
+                await _proxy.WriteBoolToPlcAsync("Start_pump", true);
             }
             catch (Exception ex)
             {
@@ -308,7 +380,9 @@ namespace ClientVodenko.ViewModel
         {
             try
             {
-                await _proxy.ResetAsync();
+                await _proxy.SetResetPulseAsync();
+
+                ConnectionStatus = "Connected";
             }
             catch (Exception ex)
             {
@@ -316,11 +390,47 @@ namespace ClientVodenko.ViewModel
             }
         }
 
-        private async Task UpdatePlc(PLCDto plcDto)
+        private async Task SetSetpoint()
         {
-            try { await _proxy.UpdatePlcAsync(plcDto); }
-            catch (Exception ex) { ConnectionStatus = $"Error: {ex.Message}"; }
+            try
+            {
+                L2ToPlcDto controlDto = new L2ToPlcDto
+                {
+                    Level_Setpoint = LevelSetpoint
+                };
+
+                await _proxy.UpdateControlRowAsync(controlDto);
+            }
+            catch (Exception ex)
+            {
+                ConnectionStatus = $"Error: {ex.Message}";
+            }
         }
+
+        private async Task SetValvePosition()
+        {
+            try
+            {
+                // Šaljemo naziv taga za poziciju ventila na PLC-u i vrijednost setpointa
+                await _proxy.WriteRealToPlcAsync("Manual_valve_value", ValvePositionSetpoint);
+            }
+            catch (Exception ex)
+            {
+                ConnectionStatus = $"Error: {ex.Message}";
+            }
+        }
+
+        public async Task WriteBoolModeAsync(string variable, bool state)
+        {
+            await _proxy.WriteBoolToPlcAsync(variable, state);
+        }
+
+        /* VALJDA VALJA !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! */
+
+
+
+
+        
         #endregion
     }
 }

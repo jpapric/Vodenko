@@ -139,14 +139,14 @@ namespace Server_vodenko.Infrastructure.Repository
         public async Task SetResetPulseAsync()
         {
             string query = @"UPDATE L2_TO_PLC
-                             SET Reset = 1";
+                             SET Reset_ = 1";
             using var connection = new SqlConnection(_connectionString);
             using var command = new SqlCommand(query, connection);
             await connection.OpenAsync();
             await command.ExecuteNonQueryAsync();
-            _plcConnection.WriteBool("DB102,X8.2", true);
+            _plcConnection.WriteBool("Reset", true);
              await Task.Delay(1000); 
-            _plcConnection.WriteBool("DB102,X8.2", false);
+            _plcConnection.WriteBool("Reset", false);
         }
 
         public async Task UpdateControlAsync(L2ToPlcDto dto)
@@ -176,10 +176,10 @@ namespace Server_vodenko.Infrastructure.Repository
             await connection.OpenAsync();
             await command.ExecuteNonQueryAsync();
 
-            if (dto.Level_Setpoint.HasValue) _plcConnection.WriteReal("DB102,R0.0", dto.Level_Setpoint.Value);
-            if (dto.Manual_Valve_Value.HasValue) _plcConnection.WriteReal("DB102,R4.0", dto.Manual_Valve_Value.Value);
-            if (dto.Automatic_Manual.HasValue) _plcConnection.WriteBool("DB102,X8.0", dto.Automatic_Manual.Value);
-            if (dto.Start_Pump.HasValue) _plcConnection.WriteBool("DB102,X8.1", dto.Start_Pump.Value);
+            if (dto.Level_Setpoint.HasValue) _plcConnection.WriteReal("Level_setpoint", dto.Level_Setpoint.Value);
+            if (dto.Manual_Valve_Value.HasValue) _plcConnection.WriteReal("Manual_Valve_Value", dto.Manual_Valve_Value.Value);
+            if (dto.Automatic_Manual.HasValue) _plcConnection.WriteBool("Automatic_Manual", dto.Automatic_Manual.Value);
+            if (dto.Start_Pump.HasValue) _plcConnection.WriteBool("Start_Pump", dto.Start_Pump.Value);
         }
     }
 }
