@@ -1,7 +1,7 @@
-﻿using Client.Helpers;
-using Client.Models;
+﻿using ClientVodenko.Helpers;
 using ClientVodenko.Models;
 using ClientVodenko.Proxies;
+using Client;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -13,6 +13,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Input;
 using System.Windows.Threading;
+using Client.Models;
 
 namespace ClientVodenko.ViewModel
 {
@@ -242,11 +243,11 @@ namespace ClientVodenko.ViewModel
                     return;
                 }
 
-                SetpointInvalid = data.Setpoint_invalid;
-                ManualValveInvalid = data.Manual_valve_invalid;
-                TankOverfill = data.Tank_overfill;
-                ActualLevel = data.Actual_level;
-                ValvePosition = data.Valve_position;
+                SetpointInvalid = data.Setpoint_Invalid;
+                ManualValveInvalid = data.Manual_Valve_Invalid;
+                TankOverfill = data.Tank_Overfill;
+                ActualLevel = data.Actual_Level;
+                ValvePosition = data.Valve_Position;
 
                 await RefreshEventsAsync();
 

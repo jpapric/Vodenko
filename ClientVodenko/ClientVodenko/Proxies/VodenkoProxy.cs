@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using System.Configuration;
 using System.Net.Http;
 using Newtonsoft.Json;
+using Client.Models;
 
 namespace ClientVodenko.Proxies
 {

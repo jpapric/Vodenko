@@ -16,6 +16,7 @@ using System.Windows.Navigation;
 using System.Windows.Shapes;
 using System.Windows.Threading;
 using System.ComponentModel;
+using ClientVodenko.Models;
 
 namespace ClientVodenko.Views
 {
