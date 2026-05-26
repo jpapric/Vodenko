@@ -151,50 +151,46 @@
                             <RowDefinition Height="*"/>
                         </Grid.RowDefinitions>
 
-                        <!-- VRIJEDNOSTI -->
-
                         <UniformGrid Columns="2" Margin="12,10">
+
                             <Border Margin="5" Background="#1E1E1E" CornerRadius="8" Padding="12">
                                 <StackPanel>
-                                    <TextBlock Text="ACTUAL LEVEL"     Foreground="#777" FontSize="10" Margin="0,0,0,4"/>
-                                    <TextBlock x:Name="ActualLevel" Text="0.0" Foreground="#00E5A0" FontSize="26" FontWeight="Bold"/>
-                                    <TextBlock Text="%"           Foreground="#666" FontSize="11"/>
+                                    <TextBlock Text="ACTUAL LEVEL" Foreground="#777" FontSize="10" Margin="0,0,0,4"/>
+                                    <TextBlock Text="{Binding ActualLevel, StringFormat={}{0:F1}}" Foreground="#00E5A0" FontSize="26" FontWeight="Bold"/>
+                                    <TextBlock Text="%" Foreground="#666" FontSize="11"/>
                                 </StackPanel>
                             </Border>
+
                             <Border Margin="5" Background="#1E1E1E" CornerRadius="8" Padding="12">
                                 <StackPanel>
-                                    <TextBlock Text="VALVE POSITION"      Foreground="#777" FontSize="10" Margin="0,0,0,4"/>
-                                    <TextBlock x:Name="ValvePosition" Text="0.0" Foreground="#E88080" FontSize="26" FontWeight="Bold"/>
-                                    <TextBlock Text="%"           Foreground="#666" FontSize="11"/>
+                                    <TextBlock Text="VALVE POSITION" Foreground="#777" FontSize="10" Margin="0,0,0,4"/>
+                                    <TextBlock Text="{Binding ValvePosition, StringFormat={}{0:F1}}" Foreground="#E88080" FontSize="26" FontWeight="Bold"/>
+                                    <TextBlock Text="%" Foreground="#666" FontSize="11"/>
                                 </StackPanel>
                             </Border>
 
                         </UniformGrid>
 
-                        <!-- FURNACE CANVAS -->
-                        <StackPanel>
-                            <Border x:Name="OverfillBanner" Background="Red" Visibility="Collapsed">
-                                <TextBlock Text="ALARM: Tank Overfill!" Foreground="White" HorizontalAlignment="Center"/>
+                        <StackPanel Grid.Row="1" Panel.ZIndex="10" VerticalAlignment="Top" Margin="12,10,12,0">
+                            <Border x:Name="OverfillBanner" Background="Red" Visibility="Collapsed" CornerRadius="4" Margin="0,0,0,5" Padding="6">
+                                <TextBlock Text="ALARM: Tank Overfill!" Foreground="White" FontWeight="Bold" HorizontalAlignment="Center"/>
                             </Border>
 
-                            <Border x:Name="InvalidSetpointBanner" Background="Orange" Visibility="Collapsed">
-                                <TextBlock Text="WARNING: Invalid Setpoint!" Foreground="White" HorizontalAlignment="Center"/>
+                            <Border x:Name="InvalidSetpointBanner" Background="Orange" Visibility="Collapsed" CornerRadius="4" Margin="0,0,0,5" Padding="6">
+                                <TextBlock Text="WARNING: Invalid Setpoint!" Foreground="White" FontWeight="Bold" HorizontalAlignment="Center"/>
                             </Border>
 
-                            <Border x:Name="InvalidValveBanner" Background="Orange" Visibility="Collapsed">
-                                <TextBlock Text="WARNING: Manual Valve Invalid!" Foreground="White" HorizontalAlignment="Center"/>
+                            <Border x:Name="InvalidValveBanner" Background="Orange" Visibility="Collapsed" CornerRadius="4" Margin="0,0,0,5" Padding="6">
+                                <TextBlock Text="WARNING: Manual Valve Invalid!" Foreground="White" FontWeight="Bold" HorizontalAlignment="Center"/>
                             </Border>
                         </StackPanel>
+
                         <Border Grid.Row="1" Background="#111111" Margin="12,0,12,12" CornerRadius="6">
                             <Viewbox Stretch="Uniform">
                                 <Grid Width="560" Height="360">
-
                                     <Canvas Width="560" Height="360">
 
                                         <Rectangle Canvas.Left="105" Canvas.Top="20" Width="60" Height="20" Fill="#444444" Stroke="#666666" StrokeThickness="1.5"/>
-
-                                        
-
 
                                         <Rectangle Canvas.Left="130" Canvas.Top="80" Width="300" Height="220" Fill="#1A1A1A"/>
 
@@ -210,26 +206,15 @@
                                             </Path.Data>
                                         </Path>
 
-                                        <Rectangle x:Name="WaterFill" 
-               Canvas.Left="132" Canvas.Top="200" 
-               Width="296" Height="100" 
-               Fill="#00BFFF" />
+                                        <Rectangle x:Name="WaterFill" Canvas.Left="132" Canvas.Top="300" Width="296" Height="0" Fill="#00BFFF" />
 
-
-                                        <TextBlock x:Name="WaterLevelText"
-               Canvas.Left="265" Canvas.Top="170"
-               Text="45%"
-               Foreground="#00BFFF" FontSize="16" FontWeight="Bold"/>
-
+                                        <TextBlock x:Name="WaterLevelText" Canvas.Left="265" Canvas.Top="275" Text="0%" Foreground="#00BFFF" FontSize="16" FontWeight="Bold"/>
 
                                         <Rectangle Canvas.Left="430" Canvas.Top="275" Width="40" Height="20" Fill="#444444" Stroke="#666666" StrokeThickness="1.5"/>
 
-                                        <Rectangle x:Name="ValveGate" 
-               Canvas.Left="432" Canvas.Top="255" 
-               Width="8" Height="22" 
-               Fill="#FF4500" Stroke="#CC3300" StrokeThickness="1"/>
+                                        <Rectangle x:Name="ValveGate" Canvas.Left="432" Canvas.Top="277" Width="8" Height="22" Fill="#FF4500" Stroke="#CC3300" StrokeThickness="1"/>
 
-                                        <Path x:Name="OutflowStream" Fill="#00BFFF" Opacity="0.8">
+                                        <Path x:Name="OutflowStream" Fill="#00BFFF" Opacity="0">
                                             <Path.Data>
                                                 <PathGeometry>
                                                     <PathFigure StartPoint="470,277" IsClosed="True">
@@ -240,10 +225,9 @@
                                                 </PathGeometry>
                                             </Path.Data>
                                         </Path>
-                                        <Rectangle x:Name="InflowStream" 
-                                        Canvas.Left="135" Canvas.Top="40" 
-                                        Width="14" Height="258" 
-                                        Fill="#00BFFF" />
+
+                                        <Rectangle x:Name="InflowStream" Canvas.Left="135" Canvas.Top="40" Width="14" Height="258" Fill="#00BFFF" />
+
                                     </Canvas>
                                 </Grid>
                             </Viewbox>
@@ -350,7 +334,7 @@
 
                                 </Grid>
 
-                                <Button Content="START"                                  
+                                <Button Content="START" Click="StartBtn_Click"                                  
                                 Style="{StaticResource ActionBtn}"
                                 Background="#45AB26"
                                 Margin="0,0,0,16"
@@ -653,7 +637,8 @@
                             HorizontalAlignment="Right"
                             VerticalAlignment="Center">
 
-                    <ToggleButton Width="120" Height="36" Margin="0,0,20,0" x:Name="ModeToggle">
+                    <ToggleButton Width="120" Height="36" Margin="0,0,20,0" x:Name="ModeToggle"
+                        Unchecked="ModeToggle_Unchecked" Checked="ModeToggle_Checked">
                         <ToggleButton.Template>
                             <ControlTemplate TargetType="ToggleButton">
                                 <Grid Background="Transparent" Cursor="Hand">

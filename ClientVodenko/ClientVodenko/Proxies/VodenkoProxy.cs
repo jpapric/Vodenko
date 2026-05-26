@@ -5,8 +5,6 @@ using System.Configuration;
 using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
-using System.Configuration;
-using System.Net.Http;
 using Newtonsoft.Json;
 using Client.Models;
 
@@ -14,95 +12,94 @@ namespace ClientVodenko.Proxies
 {
     public class VodenkoProxy
     {
-        private HttpClient _httpClient;
+        private readonly HttpClient _httpClient;
+        private readonly string _baseRoute = "api/vodenko/";
 
         public VodenkoProxy()
         {
             string baseUrl = ConfigurationManager.AppSettings["ApiBaseUrl"];
+            if (!baseUrl.EndsWith("/")) baseUrl += "/";
+
             _httpClient = new HttpClient
             {
                 BaseAddress = new Uri(baseUrl)
             };
         }
 
-        public async Task<VodenkoDto> GetEafDataFromPlcAsync()
+        public async Task<PlcDto> GetPlcAsync()
         {
-            var response = await _httpClient.GetAsync("GetEafDataFromPlc");
-            response.EnsureSuccessStatusCode();
-            string json = await response.Content.ReadAsStringAsync();
-            return Newtonsoft.Json.JsonConvert.DeserializeObject<VodenkoDto>(json);
-        }
-        public async Task<PLCDto> GetPlc()
-        {
-            var response = await _httpClient.GetAsync("GetPlc");
+            var response = await _httpClient.GetAsync($"GetPlc");
             response.EnsureSuccessStatusCode();
 
             string json = await response.Content.ReadAsStringAsync();
-            PLCDto result = JsonConvert.DeserializeObject<PLCDto>(json);
-
-            return result;
-
+            return JsonConvert.DeserializeObject<PlcDto>(json, new Newtonsoft.Json.Converters.StringEnumConverter());
         }
 
-        public async Task UpdatePlc(PLCDto plc)
+        public async Task<List<AlarmsDto>> GetAlarmsAsync(int minutes)
         {
-            string json = JsonConvert.SerializeObject(plc);
-            StringContent content = new StringContent(json, Encoding.UTF8, "application/json");
-            var response = await _httpClient.PostAsync("UpdatePlc", content);
+            var response = await _httpClient.GetAsync($"GetAlarms/{minutes}");
             response.EnsureSuccessStatusCode();
-        }
 
-        public async Task ResetAsync()
-        {
-            var response = await _httpClient.PostAsync("Reset", null);
-            response.EnsureSuccessStatusCode();
-        }
-
-        public async Task SetSetpointAsync(float setpoint)
-        {
-            var content = new StringContent(
-                setpoint.ToString(System.Globalization.CultureInfo.InvariantCulture),
-                Encoding.UTF8, "application/json");
-            var response = await _httpClient.PostAsync("SetCurrent", content);
-            response.EnsureSuccessStatusCode();
-        }
-
-        public async Task SetValvePositionAsync(float valvePosition)
-        {
-            var content = new StringContent(
-                valvePosition.ToString(System.Globalization.CultureInfo.InvariantCulture),
-                Encoding.UTF8, "application/json");
-            var response = await _httpClient.PostAsync("SetAngle", content);
-            response.EnsureSuccessStatusCode();
-        }
-
-        public async Task<PLCDto> GetPlcAsync()
-        {
-            var response = await _httpClient.GetAsync("GetPlc");
-            response.EnsureSuccessStatusCode();
             string json = await response.Content.ReadAsStringAsync();
-            return Newtonsoft.Json.JsonConvert.DeserializeObject<PLCDto>(json);
+            return JsonConvert.DeserializeObject<List<AlarmsDto>>(json);
         }
 
-        public async Task UpdatePlcAsync(PLCDto plc)
+        public async Task<List<VodenkoDto>> GetTrendsAsync(int minutes)
         {
-            string json = Newtonsoft.Json.JsonConvert.SerializeObject(plc);
+            var response = await _httpClient.GetAsync($"GetTrends/{minutes}");
+            response.EnsureSuccessStatusCode();
+
+            string json = await response.Content.ReadAsStringAsync();
+            return JsonConvert.DeserializeObject<List<VodenkoDto>>(json);
+        }
+
+        public async Task<L2ToPlcDto> GetControlRowAsync()
+        {
+            var response = await _httpClient.GetAsync($"GetControlRow");
+            response.EnsureSuccessStatusCode();
+
+            string json = await response.Content.ReadAsStringAsync();
+            return JsonConvert.DeserializeObject<L2ToPlcDto>(json);
+        }
+
+        public async Task<VodenkoDto> GetVodenkoDataFromPlcAsync()
+        {
+            var response = await _httpClient.GetAsync($"GetVodenkoDataFromPlc");
+            if (response.StatusCode == System.Net.HttpStatusCode.NoContent)
+            {
+                return null;
+            }
+            response.EnsureSuccessStatusCode();
+
+            string json = await response.Content.ReadAsStringAsync();
+            return JsonConvert.DeserializeObject<VodenkoDto>(json);
+        }
+
+        public async Task SetResetPulseAsync()
+        {
+            var response = await _httpClient.PostAsync($"SetResetPulse", null);
+            response.EnsureSuccessStatusCode();
+        }
+
+        public async Task UpdateControlRowAsync(L2ToPlcDto dto)
+        {
+            string json = JsonConvert.SerializeObject(dto);
             var content = new StringContent(json, Encoding.UTF8, "application/json");
-            var response = await _httpClient.PostAsync("UpdatePlc", content);
+
+            var response = await _httpClient.PostAsync($"UpdateControlRow", content);
             response.EnsureSuccessStatusCode();
         }
 
-        public async Task<List<EventDto>> GetEventsAsync()
+        public async Task WriteBoolToPlcAsync(string variable, bool state)
         {
-            var response = await _httpClient.GetAsync("GetEvents");
+            var response = await _httpClient.PostAsync($"WriteBoolToPlc?variable={Uri.EscapeDataString(variable)}&state={state}", null);
             response.EnsureSuccessStatusCode();
-            string json = await response.Content.ReadAsStringAsync();
-            return Newtonsoft.Json.JsonConvert.DeserializeObject<List<EventDto>>(json);
         }
 
-        public async Task EventDetectionAsync()
+        public async Task WriteRealToPlcAsync(string variable, float value)
         {
-            var response = await _httpClient.PostAsync("Event_detection", null);
+            string valueStr = value.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            var response = await _httpClient.PostAsync($"WriteRealToPlc?variable={Uri.EscapeDataString(variable)}&value={valueStr}", null);
             response.EnsureSuccessStatusCode();
         }
     }

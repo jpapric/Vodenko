@@ -144,9 +144,9 @@ namespace Server_vodenko.Infrastructure.Repository
             using var command = new SqlCommand(query, connection);
             await connection.OpenAsync();
             await command.ExecuteNonQueryAsync();
-            _plcConnection.WriteBool("reset_", true);
-            await Task.Delay(1000);
-            _plcConnection.WriteBool("reset_", false);
+            _plcConnection.WriteBool("Reset", true);
+             await Task.Delay(1000); 
+            _plcConnection.WriteBool("Reset", false);
         }
 
         public async Task UpdateControlAsync(L2ToPlcDto dto)
@@ -176,11 +176,10 @@ namespace Server_vodenko.Infrastructure.Repository
             await connection.OpenAsync();
             await command.ExecuteNonQueryAsync();
 
-            if (dto.Level_Setpoint.HasValue) _plcConnection.WriteReal("level_setpoint", dto.Level_Setpoint.Value);
-            if (dto.Manual_Valve_Value.HasValue) _plcConnection.WriteReal("manual_valve_value", dto.Manual_Valve_Value.Value);
-            if (dto.Automatic_Manual.HasValue) _plcConnection.WriteBool("automatic_manual", dto.Automatic_Manual.Value);
-            if (dto.Start_Pump.HasValue) _plcConnection.WriteBool("start_pump", dto.Start_Pump.Value);
-
+            if (dto.Level_Setpoint.HasValue) _plcConnection.WriteReal("Level_setpoint", dto.Level_Setpoint.Value);
+            if (dto.Manual_Valve_Value.HasValue) _plcConnection.WriteReal("Manual_Valve_Value", dto.Manual_Valve_Value.Value);
+            if (dto.Automatic_Manual.HasValue) _plcConnection.WriteBool("Automatic_Manual", dto.Automatic_Manual.Value);
+            if (dto.Start_Pump.HasValue) _plcConnection.WriteBool("Start_Pump", dto.Start_Pump.Value);
         }
 
         public async Task SaveTrendAsync(VodenkoDto vodenko)
