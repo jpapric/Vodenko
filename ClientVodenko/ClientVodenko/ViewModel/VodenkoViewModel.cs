@@ -14,7 +14,6 @@ using System.Threading.Tasks;
 using System.Windows.Input;
 using System.Windows.Threading;
 using Client.Models;
-using Server_vodenko.Application.DTOs;
 
 namespace ClientVodenko.ViewModel
 {
@@ -244,7 +243,7 @@ namespace ClientVodenko.ViewModel
                     return;
                 }
 
-                SetpointInvalid = data.Setpoint_Invaild;
+                SetpointInvalid = data.Setpoint_Invalid;
                 ManualValveInvalid = data.Manual_Valve_Invalid;
                 TankOverfill = data.Tank_Overfill;
                 ActualLevel = data.Actual_Level;

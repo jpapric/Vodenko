@@ -9,7 +9,6 @@ using System.Configuration;
 using System.Net.Http;
 using Newtonsoft.Json;
 using Client.Models;
-using Server_vodenko.Application.DTOs;
 
 namespace ClientVodenko.Proxies
 {
