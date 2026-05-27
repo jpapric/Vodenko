@@ -1,12 +1,15 @@
+using Client.Models;
 using ClientVodenko.Models;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Configuration;
+using System.Linq;
 using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
-using Newtonsoft.Json;
-using Client.Models;
+using System.Text.Json;
+using JsonSerializer = System.Text.Json.JsonSerializer;
 
 namespace ClientVodenko.Proxies
 {
@@ -62,17 +65,72 @@ namespace ClientVodenko.Proxies
             return JsonConvert.DeserializeObject<L2ToPlcDto>(json);
         }
 
-        public async Task<VodenkoDto> GetVodenkoDataFromPlcAsync()
-        {
-            var response = await _httpClient.GetAsync($"GetVodenkoDataFromPlc");
-            if (response.StatusCode == System.Net.HttpStatusCode.NoContent)
-            {
-                return null;
-            }
-            response.EnsureSuccessStatusCode();
 
-            string json = await response.Content.ReadAsStringAsync();
-            return JsonConvert.DeserializeObject<VodenkoDto>(json);
+
+        public async Task<(VodenkoDto ProcessData, AlarmsDto ActiveAlarm)> GetVodenkoDataFromPlcAsync()
+        {
+            try
+            {
+                var response = await _httpClient.GetAsync("GetVodenkoDataFromPlc");
+
+                if (response.StatusCode == System.Net.HttpStatusCode.NoContent)
+                {
+                    return (null, null);
+                }
+
+                response.EnsureSuccessStatusCode();
+                string json = await response.Content.ReadAsStringAsync();
+
+                var jsonObject = Newtonsoft.Json.Linq.JObject.Parse(json);
+
+                // POPRAVAK: Ključevi moraju početi MALIM slovima ("processData" i "activeAlarm")
+                // Također ih odmah pretvaramo u točne DTO tipove!
+                var processData = jsonObject["processData"]?.ToObject<VodenkoDto>();
+                var activeAlarm = jsonObject["activeAlarm"]?.ToObject<AlarmsDto>();
+
+                return (processData, activeAlarm);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"PAD U PROXYJU: {ex.Message}");
+                return (null, null);
+            }
+        }
+
+        public async Task<AlarmsDto> GetLatestAlarmAsync(int minutes)
+        {
+            try
+            {
+                // Gađamo točnu rutu na API-ju i prosljeđujemo minute
+                var response = await _httpClient.GetAsync($"GetAlarms?minutes={minutes}");
+
+                if (response.StatusCode == System.Net.HttpStatusCode.NoContent)
+                {
+                    return null; // Nema alarma u zadnjih X minuta
+                }
+
+                response.EnsureSuccessStatusCode();
+
+                string json = await response.Content.ReadAsStringAsync();
+
+                // 1. Deserijaliziramo u LISTU jer API (GetAlarms) vraća List<AlarmsDto>
+                var alarmsList = JsonConvert.DeserializeObject<List<AlarmsDto>>(json);
+
+                // 2. Ako je lista prazna, vrati null (nema alarma)
+                if (alarmsList == null || !alarmsList.Any())
+                {
+                    return null;
+                }
+
+                // 3. Uzimamo ZADNJI (najnoviji) alarm iz liste
+                // (Ovisno o tome kako ih baza sortira, ako idu od najstarijeg prema najnovijem koristi .Last(), 
+                // a ako API šalje najnovije na početku liste, koristi .First())
+                return alarmsList.Last();
+            }
+            catch
+            {
+                return null; // U slučaju greške vraćamo null da klijent ne pukne
+            }
         }
 
         public async Task SetResetPulseAsync()

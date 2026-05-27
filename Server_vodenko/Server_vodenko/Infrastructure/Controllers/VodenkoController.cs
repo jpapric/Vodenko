@@ -91,11 +91,16 @@ namespace Server_vodenko.Infrastructure.Controllers
             try
             {
                 var data = _cache.Get();
+                var alarm = _cache.GetAlarms();
 
                 if (data == null)
                     return NoContent();
 
-                return Ok(data);
+                return Ok(new
+                {
+                    ProcessData = data,
+                    ActiveAlarm = alarm 
+                });
             }
             catch (Exception ex)
             {

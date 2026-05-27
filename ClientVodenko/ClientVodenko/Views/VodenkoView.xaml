@@ -79,10 +79,10 @@
 
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                     <Image Width="70" Height="70" Margin="0,0,10,0"
-                           Source="C:\Users\Luka\Documents\Vodenko\ClientVodenko\images\danieliLogo.jpg"/>
+                           Source="C:\Users\Luka\Documents\Vodenko\ClientVodenko\images\DanieliLogo.jpg"/>
                     <Image Width="70" Height="70" Margin="0,0,15,0"
                            Source="C:\Users\Luka\Documents\Vodenko\ClientVodenko\images\mathosLogo.png"/>
-                    <TextBlock Text="EAF CONTROL" Foreground="White"
+                    <TextBlock Text="VODENKO CONTROL" Foreground="White"
                                FontSize="18" FontWeight="SemiBold" VerticalAlignment="Center"/>
                 </StackPanel>
 
@@ -129,7 +129,7 @@
                     <Button x:Name="ProcessBtn"    Content="PROCESS VIEW" Click="ProcessBtn_Click"    Style="{StaticResource NavBtnActive}"/>
                     <Button x:Name="ConnectionBtn" Content="CONNECTION"   Click="ConnectionBtn_Click" Style="{StaticResource NavBtn}"/>
                     <Button x:Name="HistoryBtn"    Content="HISTORY"      Click="HistoryBtn_Click"    Style="{StaticResource NavBtn}"/>
-                    <Button x:Name="AlarmsBtn"     Content="ALARMS"       Click="AlarmsBtn_Click"     Style="{StaticResource NavBtn}"/>
+                    <Button x:Name="AlarmsBtn"     Content="ALARMS"       Click="AlarmsBtn_Click"     Style="{StaticResource NavBtn}" Visibility="Hidden"/>
                 </StackPanel>
             </Border>
 
@@ -145,33 +145,13 @@
                         <ColumnDefinition Width="320"/>
                     </Grid.ColumnDefinitions>
 
-                    <Grid>
+                    <Grid Grid.Column="0">
                         <Grid.RowDefinitions>
-                            <RowDefinition Height="120"/>
-                            <RowDefinition Height="*"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition/>
                         </Grid.RowDefinitions>
 
-                        <UniformGrid Columns="2" Margin="12,10">
-
-                            <Border Margin="5" Background="#1E1E1E" CornerRadius="8" Padding="12">
-                                <StackPanel>
-                                    <TextBlock Text="ACTUAL LEVEL" Foreground="#777" FontSize="10" Margin="0,0,0,4"/>
-                                    <TextBlock Text="{Binding ActualLevel, StringFormat={}{0:F1}}" Foreground="#00E5A0" FontSize="26" FontWeight="Bold"/>
-                                    <TextBlock Text="%" Foreground="#666" FontSize="11"/>
-                                </StackPanel>
-                            </Border>
-
-                            <Border Margin="5" Background="#1E1E1E" CornerRadius="8" Padding="12">
-                                <StackPanel>
-                                    <TextBlock Text="VALVE POSITION" Foreground="#777" FontSize="10" Margin="0,0,0,4"/>
-                                    <TextBlock Text="{Binding ValvePosition, StringFormat={}{0:F1}}" Foreground="#E88080" FontSize="26" FontWeight="Bold"/>
-                                    <TextBlock Text="%" Foreground="#666" FontSize="11"/>
-                                </StackPanel>
-                            </Border>
-
-                        </UniformGrid>
-
-                        <StackPanel Grid.Row="1" Panel.ZIndex="10" VerticalAlignment="Top" Margin="12,10,12,0">
+                        <StackPanel Grid.Row="0" Panel.ZIndex="10" VerticalAlignment="Top" Margin="12,10,12,5">
                             <Border x:Name="OverfillBanner" Background="Red" Visibility="Collapsed" CornerRadius="4" Margin="0,0,0,5" Padding="6">
                                 <TextBlock Text="ALARM: Tank Overfill!" Foreground="White" FontWeight="Bold" HorizontalAlignment="Center"/>
                             </Border>
@@ -186,52 +166,80 @@
                         </StackPanel>
 
                         <Border Grid.Row="1" Background="#111111" Margin="12,0,12,12" CornerRadius="6">
-                            <Viewbox Stretch="Uniform">
-                                <Grid Width="560" Height="360">
-                                    <Canvas Width="560" Height="360">
+                            <Viewbox Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                <Grid Width="560" Height="380">
+                                    <Canvas Width="560" Height="380">
 
-                                        <Rectangle Canvas.Left="105" Canvas.Top="20" Width="60" Height="20" Fill="#444444" Stroke="#666666" StrokeThickness="1.5"/>
+                                        <Rectangle Canvas.Left="70" Canvas.Top="60" Width="420" Height="270" Fill="#1A1A1A"/>
+                                        <Rectangle x:Name="WaterFill" Canvas.Left="72" Canvas.Top="330" Width="416" Height="0" Fill="#00BFFF" />
 
-                                        <Rectangle Canvas.Left="130" Canvas.Top="80" Width="300" Height="220" Fill="#1A1A1A"/>
-
-                                        <Path Stroke="#888888" StrokeThickness="4" Fill="Transparent">
-                                            <Path.Data>
-                                                <PathGeometry>
-                                                    <PathFigure StartPoint="130,80">
-                                                        <LineSegment Point="130,300"/>
-                                                        <LineSegment Point="430,300"/>
-                                                        <LineSegment Point="430,80"/>
-                                                    </PathFigure>
-                                                </PathGeometry>
-                                            </Path.Data>
-                                        </Path>
-
-                                        <Rectangle x:Name="WaterFill" Canvas.Left="132" Canvas.Top="300" Width="296" Height="0" Fill="#00BFFF" />
-
-                                        <TextBlock x:Name="WaterLevelText" Canvas.Left="265" Canvas.Top="275" Text="0%" Foreground="#00BFFF" FontSize="16" FontWeight="Bold"/>
-
-                                        <Rectangle Canvas.Left="430" Canvas.Top="275" Width="40" Height="20" Fill="#444444" Stroke="#666666" StrokeThickness="1.5"/>
-
-                                        <Rectangle x:Name="ValveGate" Canvas.Left="432" Canvas.Top="277" Width="8" Height="22" Fill="#FF4500" Stroke="#CC3300" StrokeThickness="1"/>
+                                        <Rectangle x:Name="InflowStream" Canvas.Left="120" Canvas.Top="48" Width="16" Height="280" Fill="#00BFFF" Opacity="0" />
 
                                         <Path x:Name="OutflowStream" Fill="#00BFFF" Opacity="0">
                                             <Path.Data>
                                                 <PathGeometry>
-                                                    <PathFigure StartPoint="470,277" IsClosed="True">
-                                                        <LineSegment Point="540,310"/>
-                                                        <LineSegment Point="540,322"/>
-                                                        <LineSegment Point="470,293"/>
+                                                    <PathFigure StartPoint="540,317" IsClosed="True">
+                                                        <LineSegment Point="560,338"/>
+                                                        <LineSegment Point="560,348"/>
+                                                        <LineSegment Point="540,333"/>
                                                     </PathFigure>
                                                 </PathGeometry>
                                             </Path.Data>
                                         </Path>
 
-                                        <Rectangle x:Name="InflowStream" Canvas.Left="135" Canvas.Top="40" Width="14" Height="258" Fill="#00BFFF" />
+                                        <Rectangle Canvas.Left="0" Canvas.Top="15" Width="120" Height="16" Fill="#444444" Stroke="#222222" StrokeThickness="1"/>
+                                        <Rectangle Canvas.Left="0" Canvas.Top="17" Width="120" Height="4" Fill="#666666" Opacity="0.4"/>
+
+                                        <Path Fill="#444444" Stroke="#222222" StrokeThickness="1">
+                                            <Path.Data>
+                                                <PathGeometry>
+                                                    <PathFigure StartPoint="120,15">
+                                                        <ArcSegment Point="136,31" Size="16,16" SweepDirection="Clockwise"/>
+                                                        <LineSegment Point="136,48"/>
+                                                        <LineSegment Point="120,48"/>
+                                                        <ArcSegment Point="120,31" Size="4,4" SweepDirection="CounterClockwise"/>
+                                                    </PathFigure>
+                                                </PathGeometry>
+                                            </Path.Data>
+                                        </Path>
+
+                                        <TextBlock x:Name="ValveOpeningText" Canvas.Left="100" Canvas.Top="8" Text="0.0%" Foreground="#FF4500" FontSize="11" FontWeight="Bold"/>
+
+                                        <Rectangle Canvas.Left="94" Canvas.Top="32" Width="44" Height="16" Fill="#2A2A2A" Stroke="#111111" StrokeThickness="1"/>
+                                        <Rectangle Canvas.Left="120" Canvas.Top="32" Width="16" Height="16" Fill="#050505"/>
+
+                                        <Rectangle x:Name="ValveGate" Canvas.Left="120" Canvas.Top="31" Width="18" Height="18" Fill="#FF4500" Stroke="#CC3300" StrokeThickness="1" Opacity="0.95"/>
+
+                                        <Rectangle Canvas.Left="118" Canvas.Top="30" Width="2" Height="20" Fill="#555555"/>
+                                        <Rectangle Canvas.Left="136" Canvas.Top="30" Width="2" Height="20" Fill="#555555"/>
+
+                                        <Path Stroke="#888888" StrokeThickness="4" Fill="Transparent">
+                                            <Path.Data>
+                                                <PathGeometry>
+                                                    <PathFigure StartPoint="70,60">
+                                                        <LineSegment Point="70,330"/>
+                                                        <LineSegment Point="490,330"/>
+                                                        <LineSegment Point="490,60"/>
+                                                    </PathFigure>
+                                                </PathGeometry>
+                                            </Path.Data>
+                                        </Path>
+
+                                        <Rectangle Canvas.Left="490" Canvas.Top="315" Width="50" Height="20" Fill="#444444" Stroke="#666666" StrokeThickness="1.5"/>
+                                        <Rectangle Canvas.Left="490" Canvas.Top="317" Width="50" Height="5" Fill="#666666" Opacity="0.4"/>
+
+                                        <StackPanel Canvas.Left="180" Canvas.Top="345" Width="200" Orientation="Horizontal" HorizontalAlignment="Center">
+                                            <TextBlock Text="WATER LEVEL: " Foreground="#888888" FontSize="14" FontWeight="Bold"/>
+                                            <TextBlock x:Name="WaterLevelText" Text="0.0%" Foreground="#00BFFF" FontSize="14" FontWeight="Bold"/>
+                                        </StackPanel>
 
                                     </Canvas>
                                 </Grid>
                             </Viewbox>
                         </Border>
+                    </Grid>
+
+                    <Grid Grid.Column="1">
                     </Grid>
 
 
@@ -306,7 +314,7 @@
                                         <ColumnDefinition Width="*"/>
                                         <ColumnDefinition Width="46"/>
                                     </Grid.ColumnDefinitions>
-                                    <Slider x:Name="ValveSlider" Minimum="0" Maximum="15"
+                                    <Slider x:Name="ValveSlider" Minimum="0" Maximum="100"
                                             Value="0" Foreground="#00E5A0"
                                             VerticalAlignment="Center"
                                             ValueChanged="ValveSlider_ValueChanged"/>
@@ -334,11 +342,12 @@
 
                                 </Grid>
 
-                                <Button Content="START" Click="StartBtn_Click"                                  
+                                <Button x:Name="StartStopBtn" 
+                                Content="START" 
+                                Click="StartBtn_Click"                                  
                                 Style="{StaticResource ActionBtn}"
                                 Background="#45AB26"
-                                Margin="0,0,0,16"
-                                />
+                                Margin="0,0,0,16"/>
 
                                 <Button Content="RESET" Click="ResetBtn_Click"                                       
                                         Style="{StaticResource ActionBtn}"
@@ -624,14 +633,14 @@
                                FontSize="12"/>
 
                 </StackPanel>
-
+                <!--
                 <TextBlock Grid.Column="1"
                            Text="{Binding LastEventText}"
                            Foreground="#DDDDDD"
                            FontSize="15"
                            VerticalAlignment="Center"
                            HorizontalAlignment="Center"/>
-
+                -->
                 <StackPanel Grid.Column="2"
                             Orientation="Horizontal"
                             HorizontalAlignment="Right"
