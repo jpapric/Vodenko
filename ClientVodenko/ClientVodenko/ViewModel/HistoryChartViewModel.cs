@@ -64,7 +64,7 @@ public class HistoryChartViewModel : INotifyPropertyChanged
             },
             new LineSeries<DateTimePoint>
             {
-                Name = "Level Setpoint",
+                Name = "Water level",
                 Values = new ObservableCollection<DateTimePoint>(levelValues),
                 Stroke = new SolidColorPaint(SKColor.Parse("#FF4444")) { StrokeThickness = 2 },
                 Fill = null,

@@ -83,7 +83,7 @@
                            Source="C:\Users\Luka\Documents\Vodenko\ClientVodenko\images\danieliLogo.jpg"/>
                     <Image Width="70" Height="70" Margin="0,0,15,0"
                            Source="C:\Users\Luka\Documents\Vodenko\ClientVodenko\images\mathosLogo.png"/>
-                    <TextBlock Text="EAF CONTROL" Foreground="White"
+                    <TextBlock Text="VODENKO CONTROL" Foreground="White"
                                FontSize="18" FontWeight="SemiBold" VerticalAlignment="Center"/>
                 </StackPanel>
 
@@ -520,7 +520,7 @@
                                 <StackPanel Orientation="Horizontal" Margin="0,0,0,16">
                                     <TextBlock Text="PERIOD:" Foreground="#777" 
                                                 VerticalAlignment="Center" Margin="0,0,8,0"/>
-                                    <ComboBox x:Name="ChartPeriod" Width="160" Margin="0,0,16,0">
+                                    <ComboBox x:Name="ChartPeriod" Width="160" Margin="0,0,16,0" HorizontalAlignment="Center" VerticalAlignment="Center">
                                         <ComboBoxItem Content="Last 30 min" Tag="30" IsSelected="True"/>
                                         <ComboBoxItem Content="Last hour" Tag="60"/>
                                         <ComboBoxItem Content="Last 2 hours" Tag="120"/>
