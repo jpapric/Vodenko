@@ -4,8 +4,11 @@
 		<TargetFramework>net472</TargetFramework>
 		<UseWPF>true</UseWPF>
 		<GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+		<LangVersion>latest</LangVersion>
 	</PropertyGroup>
 	<ItemGroup>
+	  <PackageReference Include="LiveChartsCore" Version="2.0.4" />
+	  <PackageReference Include="LiveChartsCore.SkiaSharpView.WPF" Version="2.0.4" />
 	  <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
 	</ItemGroup>
 	<ItemGroup>

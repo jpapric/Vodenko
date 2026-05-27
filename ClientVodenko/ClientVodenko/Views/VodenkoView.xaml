@@ -3,6 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:lvc="clr-namespace:LiveChartsCore.SkiaSharpView.WPF;assembly=LiveChartsCore.SkiaSharpView.WPF"
              xmlns:local="clr-namespace:ClientVodenko.Views"
              mc:Ignorable="d" 
              d:DesignHeight="450" d:DesignWidth="800">
@@ -432,42 +433,41 @@
                 <!-- HISTORY !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! -->
 
 
-                <Grid x:Name="HistoryPage" Visibility="Collapsed" Background="#101010">
+                <Grid x:Name="HistoryPage" Visibility="Visible" Background="#101010">
                     <Grid Margin="20">
                         <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
                             <RowDefinition Height="Auto"/>
                             <RowDefinition Height="Auto"/>
                             <RowDefinition Height="*"/>
                         </Grid.RowDefinitions>
 
+                        <!-- NASLOV -->
                         <Grid Margin="0,0,0,20">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*"/>
                                 <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
                             <TextBlock Text="EVENT HISTORY" Foreground="White"
-                                        FontSize="24" FontWeight="Bold" VerticalAlignment="Center"/>
+                       FontSize="24" FontWeight="Bold" VerticalAlignment="Center"/>
                         </Grid>
 
-                        <UniformGrid Grid.Row="1" Columns="3" Margin="0,0,0,16">
-                            <Border Margin="0,0,8,0" Background="#1E1E1E" CornerRadius="6" Padding="14,10">
-                                <StackPanel>
-                                    <TextBlock Text="TOTAL EVENTS" Foreground="#777" FontSize="10" FontWeight="SemiBold"/>
-                                    <TextBlock x:Name="HistTotalEvents" Text="0" Foreground="#00BFFF"
-                                                FontSize="22" FontWeight="Bold" Margin="0,4,0,0"/>
-                                </StackPanel>
-                            </Border>
-                            <Border Margin="4,0" Background="#1E1E1E" CornerRadius="6" Padding="14,10">
-                                <StackPanel>
-                                    <TextBlock Text="ALARMS" Foreground="#777" FontSize="10" FontWeight="SemiBold"/>
-                                    <TextBlock x:Name="HistAlarmCount" Text="0" Foreground="#FF4444"
-                               FontSize="22" FontWeight="Bold" Margin="0,4,0,0"/>
-                                </StackPanel>
-                            </Border>
+                        <!-- BUTTONI ZA PREBACIVANJE -->
+                        <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,0,0,16">
+                            <Button x:Name="BtnShowTable" Content="TABLE" Width="120" Height="34"
+                    Background="#00BFFF" Foreground="White" FontWeight="SemiBold"
+                    BorderThickness="0" Margin="0,0,8,0"
+                    Click="BtnShowTable_Click"/>
+                            <Button x:Name="BtnShowCharts" Content="CHART" Width="120" Height="34"
+                    Background="#2A2A2A" Foreground="#777" FontWeight="SemiBold"
+                    BorderThickness="0"
+                    Click="BtnShowCharts_Click"/>
+                        </StackPanel>
 
-                        </UniformGrid>
-
-                        <DataGrid x:Name="HistoryGrid" Grid.Row="2"
+                        <!-- TABLICA -->
+                        <DataGrid x:Name="HistoryGrid" Grid.Row="3"
+                                  Visibility="Visible"
+                                  d:Visibility="Visible"
                                   ItemsSource="{Binding Events}"
                                   Background="#1E1E1E" Foreground="White"
                                   BorderBrush="#333" RowBackground="#1E1E1E"
@@ -497,13 +497,50 @@
                             </DataGrid.RowStyle>
                             <DataGrid.Columns>
                                 <DataGridTextColumn Header="NAME" Width="170"
-                                    Binding="{Binding Name, StringFormat=dd.MM.yyyy HH:mm:ss}"/>
-                                <DataGridTextColumn Header="TYPE" Width="100"
-                                    Binding="{Binding Type}"/>
-                                <DataGridTextColumn Header="TIME" Width="*"
-                                    Binding="{Binding Time}"/>
+                                        Binding="{Binding Name}"/>
+                                                    <DataGridTextColumn Header="TYPE" Width="100"
+                                        Binding="{Binding Type}"/>
+                                                    <DataGridTextColumn Header="TIME" Width="*"
+                                        Binding="{Binding Time, StringFormat=dd.MM.yyyy HH:mm:ss}"/>
                             </DataGrid.Columns>
                         </DataGrid>
+
+                        <!-- GRAFOVI -->
+                        <Grid x:Name="ChartsGrid" Grid.Row="3"
+                              Visibility="Collapsed"
+                              d:Visibility="Collapsed"
+                              Background="#1E1E1E">
+                            <Grid Margin="20">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="*"/>
+                                </Grid.RowDefinitions>
+
+                                <!-- Filter po periodu -->
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,16">
+                                    <TextBlock Text="PERIOD:" Foreground="#777" 
+                                                VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                    <ComboBox x:Name="ChartPeriod" Width="160" Margin="0,0,16,0">
+                                        <ComboBoxItem Content="Last 30 min" Tag="30" IsSelected="True"/>
+                                        <ComboBoxItem Content="Last hour" Tag="60"/>
+                                        <ComboBoxItem Content="Last 2 hours" Tag="120"/>
+                                        <ComboBoxItem Content="Last 6 hours" Tag="360"/>
+                                        <ComboBoxItem Content="Last day" Tag="1440"/>
+                                    </ComboBox>
+                                    <Button Content="LOAD" Width="100" Height="34"
+                                            Background="#00BFFF" Foreground="White"
+                                            FontWeight="SemiBold" BorderThickness="0"
+                                            Click="BtnLoadChart_Click"/>
+                                </StackPanel>
+
+                                <!-- Graf -->
+                                <lvc:CartesianChart x:Name="TrendChart" Grid.Row="1"
+                            Series="{Binding ChartSeries}"
+                            XAxes="{Binding XAxes}"
+                            YAxes="{Binding YAxes}"/>
+                            </Grid>
+                        </Grid>
+
                     </Grid>
                 </Grid>
 

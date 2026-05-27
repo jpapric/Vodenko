@@ -304,5 +304,50 @@ namespace ClientVodenko.Views
 
         private void AlarmsBtn_Click(object sender, RoutedEventArgs e)
         { ShowPage(AlarmsPage); if (AlarmsBtn != null) AlarmsBtn.Background = (Brush)new BrushConverter().ConvertFrom("DimGray"); }
+
+        private void BtnShowTable_Click(object sender, RoutedEventArgs e)
+        {
+            HistoryGrid.Visibility = Visibility.Visible;
+            ChartsGrid.Visibility = Visibility.Collapsed;
+
+            // aktivni button svijetli, neaktivni potamni
+            BtnShowTable.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#00BFFF"));
+            BtnShowTable.Foreground = Brushes.White;
+            BtnShowCharts.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#2A2A2A"));
+            BtnShowCharts.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#777777"));
+        }
+
+        private void BtnShowCharts_Click(object sender, RoutedEventArgs e)
+        {
+            HistoryGrid.Visibility = Visibility.Collapsed;
+            ChartsGrid.Visibility = Visibility.Visible;
+
+            BtnShowCharts.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#00BFFF"));
+            BtnShowCharts.Foreground = Brushes.White;
+            BtnShowTable.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#2A2A2A"));
+            BtnShowTable.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#777777"));
+        }
+
+        private HistoryChartViewModel _chartVm = new HistoryChartViewModel();
+
+        private async void BtnLoadChart_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                int minutes = 60; // default
+                if (ChartPeriod.SelectedItem is ComboBoxItem item && int.TryParse(item.Tag.ToString(), out int m))
+                    minutes = m;
+
+                var proxy = new ClientVodenko.Proxies.VodenkoProxy();
+                List<VodenkoDto> podaci = await proxy.GetTrendsAsync(minutes);
+                _chartVm.LoadData(podaci);
+                TrendChart.DataContext = _chartVm;
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Greška pri učitavanju: {ex.Message}");
+            }
+        }
+
     }
 }
