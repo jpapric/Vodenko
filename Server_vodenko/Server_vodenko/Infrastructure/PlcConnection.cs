@@ -4,6 +4,7 @@ using Server_vodenko.Application.Interfaces;
 using Server_vodenko.Domain;
 using Server_vodenko.Infrastructure.Controllers;
 using Server_vodenko.Infrastructure.Repository;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace Server_vodenko.Infrastructure.BackgroundServices
 {
@@ -101,7 +102,14 @@ namespace Server_vodenko.Infrastructure.BackgroundServices
                     _cache.Update(vodenkoData);
 
                     var alarmsData = new Alarms(false, false, false, DateTime.Now);
-                    _plc.ReadClass(alarmsData, 101, 0);
+                    _plc.ReadClass(alarmsData, 101, 8);
+                    _cache.UpdateAlarms(alarmsData);
+                    bool test1 = (bool)_plc.Read("DB101.DBX8.0");
+                    bool test2= (bool)_plc.Read("DB101.DBX8.1");
+                    bool test3= (bool)_plc.Read("DB101.DBX8.2");
+                    
+
+
 
                     using var scope = _scopeFactory.CreateScope();
                     var repository = scope.ServiceProvider.GetRequiredService<IVodenkoRepository>();

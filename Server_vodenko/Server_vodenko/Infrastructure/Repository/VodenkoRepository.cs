@@ -145,8 +145,10 @@ namespace Server_vodenko.Infrastructure.Repository
             await connection.OpenAsync();
             await command.ExecuteNonQueryAsync();
             _plcConnection.WriteBool("Reset", true);
+            _plcConnection.WriteReal("Level_setpoint", 0);
              await Task.Delay(1000); 
             _plcConnection.WriteBool("Reset", false);
+            
         }
 
         public async Task UpdateControlAsync(L2ToPlcDto dto)

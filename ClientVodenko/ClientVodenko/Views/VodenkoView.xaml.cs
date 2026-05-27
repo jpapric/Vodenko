@@ -24,8 +24,12 @@ namespace ClientVodenko.Views
         private readonly VodenkoViewModel _vm;
         private readonly DispatcherTimer _animTimer;
 
-        private const double MinWaterTop = 300.0;
-        private const double MaxWaterHeight = 220.0;
+        // 1. POPRAVLJENE KONSTANTE: Prilagođene novom, spuštenom i povećanom spremniku
+        private const double MinWaterTop = 330.0;    // Novo dno spremnika u pikselima
+        private const double MaxWaterHeight = 266.0; // Nova maksimalna visina vode (100%)
+
+        // Lokalna varijabla koja prati je li korisnik stisnuo START
+        private bool _isProcessRunning = false;
 
         public VodenkoView()
         {
@@ -46,9 +50,41 @@ namespace ClientVodenko.Views
 
         private void DrawFrame()
         {
-            // Sigurnosna provjera XAML elemenata
-            if (WaterFill == null || WaterLevelText == null || ValveGate == null || OutflowStream == null)
+            if (WaterFill == null || WaterLevelText == null || ValveGate == null || OutflowStream == null || InflowStream == null)
                 return;
+
+            // 1. ZAKLJUČAVANJE TOGGLE BUTTONA: Ako proces punjenja radi, onemogući klikanje na gumb za modove
+            if (ModeToggle != null)
+            {
+                ModeToggle.IsEnabled = !_isProcessRunning;
+            }
+
+            // 2. KONTROLA UKLJUČENOSTI POLJA (READ-ONLY / ISENABLED BLOCK)
+            if (ModeToggle != null)
+            {
+                bool isAuto = ModeToggle.IsChecked == true;
+
+                // Ako smo u AUTO modu: 
+                // -> Omogući unos setpointa nivoa
+                // -> ZAKLJUČAJ slider ventila (operater ga ne može ni pomaknuti)
+                if (isAuto)
+                {
+                    if (LevelSetpointInput != null) LevelSetpointInput.IsReadOnly = false;
+                    if (SetLevelBtn != null) SetLevelBtn.IsEnabled = true;
+
+                    if (ValveSlider != null) ValveSlider.IsEnabled = false; // Slider postaje siv i zaključan
+                }
+                // Ako smo u MANUAL modu:
+                // -> ZAKLJUČAJ unos setpointa nivoa (TextBox stavljamo na ReadOnly, gumb gasimo)
+                // -> Omogući slider ventila
+                else
+                {
+                    if (LevelSetpointInput != null) LevelSetpointInput.IsReadOnly = true; // TextBox se ne može uređivati
+                    if (SetLevelBtn != null) SetLevelBtn.IsEnabled = false;      // Gumb postaje siv
+
+                    if (ValveSlider != null) ValveSlider.IsEnabled = true;  // Slider se može micati
+                }
+            }
 
             DrawWaterLevel();
             DrawValveAndOutflow();
@@ -63,7 +99,6 @@ namespace ClientVodenko.Views
         {
             double percentage = _vm.ActualLevel;
 
-            // POPRAVLJENO: Filtriranje ludih i ogromnih negativnih brojeva (smetnji)
             if (double.IsNaN(percentage) || double.IsInfinity(percentage) || percentage < 0 || percentage > 100000)
             {
                 percentage = 0;
@@ -77,30 +112,47 @@ namespace ClientVodenko.Views
             Canvas.SetTop(WaterFill, newTop);
 
             WaterLevelText.Text = $"{percentage:F1}%";
-            Canvas.SetTop(WaterLevelText, Math.Max(newTop - 25, 85));
-        }
+            //Canvas.SetTop(WaterLevelText, Math.Max(newTop - 25, 75)); // Prilagođeno novom vrhu (70)
 
-        private void DrawValveAndOutflow()
-        {
-            double valvePct = _vm.ValvePosition;
-
-            // POPRAVLJENO: Filtriranje ludih i ogromnih negativnih brojeva za ventil
-            if (double.IsNaN(valvePct) || double.IsInfinity(valvePct) || valvePct < 0 || valvePct > 100000)
-            {
-                valvePct = 0;
-            }
-            if (valvePct > 100) valvePct = 100;
-
-            double valveOffset = (valvePct / 100.0) * 22.0;
-            Canvas.SetTop(ValveGate, 277 - valveOffset);
-
-            if (valvePct > 1.0)
+            // AUTOMATSKI IZLAZ VODE NA DNU: Ako u spremniku ima vode, ona sama teče van kroz donju cijev
+            if (percentage > 0.1)
             {
                 OutflowStream.Opacity = 0.8;
             }
             else
             {
                 OutflowStream.Opacity = 0;
+            }
+        }
+
+        private void DrawValveAndOutflow()
+        {
+            double valvePct = _vm.ValvePosition;
+
+            if (double.IsNaN(valvePct) || double.IsInfinity(valvePct) || valvePct < 0 || valvePct > 100000)
+            {
+                valvePct = 0;
+            }
+            if (valvePct > 100) valvePct = 100;
+
+            // Animacija zasuna ventila (Lijevo - Desno na novoj poziciji):
+            double valveOffset = (valvePct / 100.0) * 24.0;
+            Canvas.SetLeft(ValveGate, 120 - valveOffset);
+
+            // KONTROLA MLAZA VODE (PIPE):
+            // Voda curi samo ako je ventil otvoren (>1%) AND ako je sustav online AND ako je pritisnut START gumb
+            if (valvePct > 1.0 && _vm.IsConnected && _vm.ConnectionStatus == "Connected" && _isProcessRunning)
+            {
+                InflowStream.Opacity = 0.85; // Otvor je slobodan, proces radi -> VODA TEČE!
+            }
+            else
+            {
+                InflowStream.Opacity = 0;    // Zaustavljeno ili zatvoreno -> NEMA VODE
+            }
+            // Dodaj ovo na kraj metode DrawValveAndOutflow() u xaml.cs fajlu:
+            if (ValveOpeningText != null)
+            {
+                ValveOpeningText.Text = $"{valvePct:F1}%";
             }
         }
 
@@ -118,31 +170,104 @@ namespace ClientVodenko.Views
         }
 
         private void DrawAlarmBanners()
-        {
-            if (OverfillBanner != null)
-                OverfillBanner.Visibility = _vm.TankOverfill ? Visibility.Visible : Visibility.Collapsed;
+{
+    // Definiramo boje za upaljeno (alarm) i ugašeno stanje lampica
+    var redBrush = new SolidColorBrush(Color.FromRgb(244, 67, 54));       // Crvena za Overfill
+    var orangeBrush = new SolidColorBrush(Color.FromRgb(255, 152, 0));   // Narančasta za Warninge
+    var darkGrayBrush = new SolidColorBrush(Color.FromRgb(68, 68, 68));   // Tamno siva (#444444) kada je sve OK
 
-            if (InvalidSetpointBanner != null)
-                InvalidSetpointBanner.Visibility = _vm.SetpointInvalid ? Visibility.Visible : Visibility.Collapsed;
+    // 1. TANK OVERFILL ALARM
+    if (OverfillBanner != null)
+        OverfillBanner.Visibility = _vm.TankOverfill ? Visibility.Visible : Visibility.Collapsed;
+    
+    if (LedOverfill != null)
+        LedOverfill.Fill = _vm.TankOverfill ? redBrush : darkGrayBrush;
 
-            if (InvalidValveBanner != null)
-                InvalidValveBanner.Visibility = _vm.ManualValveInvalid ? Visibility.Visible : Visibility.Collapsed;
-        }
 
+    // 2. INVALID SETPOINT WARNING
+    if (InvalidSetpointBanner != null)
+        InvalidSetpointBanner.Visibility = _vm.SetpointInvalid ? Visibility.Visible : Visibility.Collapsed;
+    
+    if (LedSetpoint != null)
+        LedSetpoint.Fill = _vm.SetpointInvalid ? orangeBrush : darkGrayBrush;
+
+
+    // 3. MANUAL VALVE INVALID WARNING
+    if (InvalidValveBanner != null)
+        InvalidValveBanner.Visibility = _vm.ManualValveInvalid ? Visibility.Visible : Visibility.Collapsed;
+    
+    if (LedValve != null)
+        LedValve.Fill = _vm.ManualValveInvalid ? orangeBrush : darkGrayBrush;
+}
+
+        // Kada se stisne RESET, gasimo proces i vraćamo kontrole na nulu
         private void ResetBtn_Click(object sender, RoutedEventArgs e)
         {
+            _isProcessRunning = false; // Zaustavi grafički tok vode odmah
+
+            // Vrati START gumb u prvobitno zeleno stanje
+            if (StartStopBtn != null)
+            {
+                StartStopBtn.Content = "START";
+                StartStopBtn.Background = new SolidColorBrush(Color.FromRgb(69, 171, 38));
+
+                _vm.StopCommand.Execute(null);
+            }
+
+            // 1. Izvrši reset na PLC-u
             _vm.ResetCommand.Execute(null);
+
+
+            // 2. KLJUČNI KORAK: Prisili ViewModel da odmah spusti interne vrijednosti na 0
+            if (_vm != null)
+            {
+                _vm.ValvePositionSetpoint = 0;
+                _vm.LevelSetpoint = 0;
+                _vm.ValvePosition = 0; // Ovo će ugasiti "ludu" staru vrijednost ventila
+                _vm.ActualLevel = 0;
+            }
+
+            // 3. Resetiraj elemente sučelja
             if (ValveSlider != null) ValveSlider.Value = 0;
             if (LevelSetpointInput != null) LevelSetpointInput.Text = "0";
+
+            // 4. Pozovi odmah metodu za crtanje da postavi crveni pravokutnik na zatvorenu poziciju (120)
+            DrawValveAndOutflow();
         }
 
         private void StartBtn_Click(object sender, RoutedEventArgs e)
         {
-            _vm.StartCommand.Execute(null);
+            var greenBrush = new SolidColorBrush(Color.FromRgb(69, 171, 38));
+            var redBrush = new SolidColorBrush(Color.FromRgb(244, 67, 54));
+
+            if (!_isProcessRunning)
+            {
+                _isProcessRunning = true;
+
+                StartStopBtn.Content = "STOP";
+                StartStopBtn.Background = redBrush;
+
+                _vm.StartCommand.Execute(null);
+            }
+            else
+            {
+                _isProcessRunning = false;
+
+                StartStopBtn.Content = "START";
+                StartStopBtn.Background = greenBrush;
+
+                _vm.StopCommand.Execute(null);
+            }
         }
 
         private void SetLevelBtn_Click(object sender, RoutedEventArgs e)
         {
+            // Sigurnosna provjera (ako operater nekako zaobiđe UI)
+            if (ModeToggle != null && ModeToggle.IsChecked != true)
+            {
+                return;
+            }
+
             if (LevelSetpointInput != null && float.TryParse(LevelSetpointInput.Text, out float val))
                 _vm.LevelSetpoint = Math.Max(0, val);
 
@@ -152,6 +277,17 @@ namespace ClientVodenko.Views
         private void ValveSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
         {
             if (TapAngleLabel == null) return;
+
+            // Sigurnosna provjera (ako operater nekako zaobiđe UI)
+            if (ModeToggle != null && ModeToggle.IsChecked == true)
+            {
+                if (_vm != null)
+                {
+                    ValveSlider.Value = _vm.ValvePosition;
+                }
+                return;
+            }
+
             TapAngleLabel.Text = $"{ValveSlider.Value:F1}%";
 
             _vm.ValvePositionSetpoint = (float)ValveSlider.Value;
@@ -160,17 +296,16 @@ namespace ClientVodenko.Views
 
         private async void ModeToggle_Checked(object sender, RoutedEventArgs e)
         {
-            try { await _vm.WriteBoolModeAsync("System_Auto_Mode", true); }
+            try { await _vm.WriteBoolModeAsync("automatic_manual", false); }
             catch (Exception ex) { _vm.ConnectionStatus = $"Error: {ex.Message}"; }
         }
 
         private async void ModeToggle_Unchecked(object sender, RoutedEventArgs e)
         {
-            try { await _vm.WriteBoolModeAsync("System_Auto_Mode", false); }
+            try { await _vm.WriteBoolModeAsync("automatic_manual", true); }
             catch (Exception ex) { _vm.ConnectionStatus = $"Error: {ex.Message}"; }
         }
 
-        // POPRAVLJENO I OPTIMIZIRANO: Spajanje sada uredno čeka odgovor s PLC-a
         private async void ConnectBtn_Click(object sender, RoutedEventArgs e)
         {
             string ip = IpInput.Text.Trim();
@@ -185,7 +320,7 @@ namespace ClientVodenko.Views
 
             ConnectBtn.IsEnabled = false;
             ConnStatusText.Text = "Connecting...";
-            ConnStatusLed.Fill = new SolidColorBrush(Color.FromRgb(255, 152, 0)); // Narančasto (spajanje u tijeku)
+            ConnStatusLed.Fill = new SolidColorBrush(Color.FromRgb(255, 152, 0));
 
             string cpuString = (CpuTypeInput.SelectedItem as ComboBoxItem)?.Content?.ToString();
             PlcDto.CpuType cpu = cpuString == "S7-1200" ? PlcDto.CpuType.S71200 :
@@ -204,17 +339,13 @@ namespace ClientVodenko.Views
             try
             {
                 _vm.ManuallyDisconnected = false;
-
-                // 1. Šaljemo nove postavke na API
                 _vm.UpdatePlcCommand.Execute(plcDto);
 
-                // 2. DAJEMO SUSTAVU 1.5 SEKUNDU DA ODRADI SPAJANJE NA PLC U POZADINI
                 await Task.Delay(1500);
 
                 var green = new SolidColorBrush(Color.FromRgb(76, 175, 80));
                 var red = new SolidColorBrush(Color.FromRgb(244, 67, 54));
 
-                // 3. Tek sada provjeravamo je li pozadinski tajmer uspio pročitati podatke
                 if (_vm.IsConnected)
                 {
                     ConnStatusLed.Fill = green;
@@ -226,7 +357,6 @@ namespace ClientVodenko.Views
                 }
                 else
                 {
-                    // Ako nakon 1.5s i dalje nema podataka, javi da PLC nije dostupan
                     ConnStatusLed.Fill = red;
                     ConnStatusText.Text = "PLC not reachable";
                     ConnectBtn.IsEnabled = true;
@@ -242,6 +372,7 @@ namespace ClientVodenko.Views
 
         private void DisconnectBtn_Click(object sender, RoutedEventArgs e)
         {
+            _isProcessRunning = false; // Zaustavi grafički proces pri diskonekciji
             _vm.ManuallyDisconnected = true;
             _vm.IsConnected = false;
 
